@@ -1,0 +1,107 @@
+#!/bin/bash
+###############################################################################################
+#	Advanced RTI System, ARTÌS			http://pads.cs.unibo.it
+#	Large Unstructured NEtwork Simulator (LUNES)
+#
+#	Description:
+#		script used to start simulation batches, most of the runtime parameters can
+#		be controlled using some environment variables. Such parameters can be used
+#		to control both the runtime execution and the model level paramters.
+#
+#	Note:
+#		some "default" runtime parameters are defined in "scripts_configuration.sh"
+#		and can be superseded here.
+#
+#	Authors:
+#		First version by Gabriele D'Angelo <g.dangelo@unibo.it>
+#
+################################################################################################
+
+#-------------------------------- DEFAULT VALUES ---------------------------------#
+#
+# Including some default configuration parameters
+#
+source scripts_configuration.sh
+export MIGRATION=0
+export MFACTOR=0
+export LOAD=0
+export DISSEMINATION=0
+export BROADCAST_PROB_THRESHOLD=100
+export FIXED_PROB_THRESHOLD=100
+export SENSOR_NODES=20
+export FULL_NODES=10
+export GATEWAYS=5
+export CLIENTS=12
+export BLOCK_FREQUENCY=20
+export SUBS=32
+export TOTAL_NODES=$((SENSOR_NODES + FULL_NODES + GATEWAYS + CLIENTS))
+
+#
+#---------------------------------------------------------------------------------#
+
+HOST="localhost"
+DEBUG="gdb -ex run --args"
+TESTNAME="file.txt"
+make clean
+make
+
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+
+  case $key in
+  -e | --error)
+    ERROR_RATE="$2"
+    shift # past argument
+    shift # past value
+    ;;
+  -d | --down)
+    DATA_CENTERS_DOWN="$2"
+    shift # past argument
+    shift # past value
+    ;;
+  *) # unknown option
+    POSITIONAL+=("$1") # save it in an array for later
+    shift              # past argument
+    ;;
+  esac
+done
+
+#---------------------------------------------------------------------------------#
+date
+
+
+if [ $EXECUTION -eq 1 ] ; then
+
+	echo "running task..."
+	rm -f *.finished
+
+	# Partitioning the #IA among all the available LPs
+	IA=$((TOTAL_NODES/LPS))
+		# SImulation MAnager (SIMA) execution	
+		if [ $HOST == $HOSTNAME -o $HOST == "localhost" ]; 
+		then
+			echo "                             "
+			./sima $LPS &
+		fi
+		# LPs execution
+		X=0
+		while [ $X -lt $LPS ]
+		do
+
+		  #time gdb -ex run --args ./mig-agents	$LPS $IA $TESTNAME \
+		  ./blockchain	$LPS $IA $TESTNAME $ERROR_RATE
+			
+			X=$((X+1))
+		done
+		
+		FINISHED=`ls -la . | grep ".finished" | wc -l`
+		while [ $FINISHED -lt $LPS ]; do
+			sleep 3
+			FINISHED=`ls -la . | grep ".finished" | wc -l`
+		done
+
+		# Some cleaning
+		rm -f *.finished
+	echo "task completed" 
+fi
