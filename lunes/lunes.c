@@ -68,7 +68,6 @@ extern int              env_subs;						/* Number of subscriptions in the system 
 
 
 
-int env_quorum = 2/3 * env_full_nodes;
 int **subs_map;
 Transaction emptyTransaction = {.timestamp=0, .transactionID=0, .customer = -1, .sensor=-1, .gateway=-1};
 
@@ -355,34 +354,16 @@ void lunes_send_transaction_to_neighbors (hash_node_t *node, Transaction tr) {
 	}
 }
 
-/*
-void lunes_send_confirmation_to_blockMaker (hash_node_t *node, long int blockID) {
-
-	// Iterator to scan the whole state hashtable of neighbors
-	GHashTableIter		iter;
-	gpointer		key, destination;
-
-	// All neighbors
-	g_hash_table_iter_init (&iter, node->data->state);
-	while (g_hash_table_iter_next (&iter, &key, &destination)) {
-		hash_node_t* destNode = hash_lookup(table, *(unsigned int *)destination);
-		int nodes_flight_time = 1;
-		execute_confirmation (simclock + nodes_flight_time, node, destNode, env_max_ttl, blockID, simclock, node->data->key);
-	}
-}*/
-
-
-
 
 //****************************************************GENERATE TRANSACTIONS MANAGEMENT*************************************************************************
 
 //generate the transactions: all customers subscribed to a certain flow of data will pay a reward to the the gateway and the sensor
 void generate_transaction (hash_node_t *node, int sensor, int gw, int ts){
 	for (int i=0; i < env_subs; i++){
-		//if (subs_map [i][1] == sensor){
+		if (subs_map [i][1] == sensor){  // a transaction for each couple of data-subscriber
 			Transaction t = {.timestamp = ts, .gateway = gw, .sensor = sensor, .customer = subs_map[i][0], .transactionID =  RND_Interval (S, 0, 1000000000000)};
 			lunes_send_transaction_to_neighbors (node, t);
-		//}
+		}
 	}
 }
 
@@ -391,16 +372,18 @@ void generate_transaction (hash_node_t *node, int sensor, int gw, int ts){
 void read_transactions(hash_node_t *node){
 	char line[256];
 	char transactionsFileName [15];
-	snprintf(transactionsFileName, sizeof(transactionsFileName), "%s%d%s", "step", (int) (simclock / 10), ".txt");
+	snprintf(transactionsFileName, sizeof(transactionsFileName), "%s%d%s", "step", (int)(simclock), ".txt");
 	FILE *fp = fopen (transactionsFileName, "r");
 	if (fp != NULL){
      	while (fgets(line, sizeof(line), fp) != NULL) {     // Initialize variables to store the three fields
 	    	char field1[64], field2[64], field3[64]; 
 		    // Use sscanf to read the fields
 		    if (sscanf(line, "%s %s %s", field1, field2, field3) == 3) {
-				int sensor = atoi(field1);
+		    	memmove(field1, field1 + 3, strlen(field1) - 2);
+				int sensor = atoi(field1) % env_sensor_nodes + env_full_nodes + env_gateway_nodes;
 				int gateway = atoi (field2);
 				int timestamp = atoi (field3);
+				//fprintf(stdout, "%d %d %d___\n", sensor, gateway, timestamp);
 				generate_transaction (node, sensor, gateway, timestamp);
 		    } else { // Handle cases where a line does not have three fields
 		        printf("Invalid line: %s\n", line);
@@ -463,7 +446,7 @@ void lunes_user_control_handler (hash_node_t *node) {
 		print_block(&b);
 	}
 
-	if (node->data->type == 'P' && ((int)simclock % env_full_nodes == node->data->key)){
+	if (node->data->type == 'P' && (int)simclock % env_block_frequency == 0 && ((int)simclock % env_full_nodes == node->data->key)){
 		read_transactions(node);
 	}
 }
@@ -518,9 +501,5 @@ void lunes_user_block_event_handler (hash_node_t *node, int forwarder, Msg *msg)
 
 
 void lunes_user_confirmation_event_handler (hash_node_t *node, int forwarder, Msg *msg){
-	/*int index = findBlock(node, msg->confirmation.blockID);
-	if (index >= 0 ){
-		node->data->blocks[index].confirmations++;
-	}*/
 }
 

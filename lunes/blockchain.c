@@ -647,7 +647,7 @@ int main(int argc, char* argv[]) {
 					    	Generate_Computation_and_Interactions( NSIMULATE * NLP );
 				            } else {  //synchronize before executing the steps
 				            	char tempFileName [15]; 
-						snprintf(tempFileName, sizeof(tempFileName), "%s%d%s", "step", (int) (simclock / 10), ".txt");						
+						snprintf(tempFileName, sizeof(tempFileName), "%s%d%s", "step", (int) (simclock), ".txt");						
 						FILE *file = fopen(tempFileName, "r");
 					        while (file == NULL ) {
 						    usleep (200000); //wait for 0.2s	

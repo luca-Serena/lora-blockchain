@@ -24,8 +24,8 @@ interaction_step=10
 total_steps = 1000
 loraVehiclePercentage= 0.8
 loraRange = 5000
-gatewayFile="simlorasf/gt.txt"
-nodesFile = "simlorasf/nodes.txt"
+gatewayFile="gt.txt"
+nodesFile = "nodes.txt"
 gateways = list()
 
 
@@ -78,35 +78,35 @@ def run():
     conn1 = traci.getConnection("sim1")
 
     while step < total_steps:
-        with open ("lunes/step" + str(step) + ".txt", "w") as file:
-            counter=0       #lora vehicles counter
-            for veh_id in traci.vehicle.getIDList():
-                if (traci.vehicle.getColor(veh_id) == (255, 255, 0, 255)):    #yellow, it's a new vehicle
-                    #print ("new vehicle ", traci.vehicle.getTypeID(veh_id),  "  ", step, "  ", traci.vehicle.getPosition(veh_id))
-                    if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and random.random() < loraVehiclePercentage): 
-                        traci.vehicle.setColor(veh_id, (255, 0, 0, 255))      #red, vehicle with Lora sensors
-                    else:
-                        traci.vehicle.setColor(veh_id, (255, 0, 255, 255))    #purple, vehicle without Lora sensors
-                
-                # write the positions of the vehicles/sensors in the nodes files, the file will be used by simlorasf
-                if (step % interaction_step == 0):
-                    with open (nodesFile, 'a') as nf:    
-                        if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and traci.vehicle.getColor(veh_id) == (255, 0, 0, 255)):
-                            nf.write(str(traci.vehicle.getPosition(veh_id)).replace('(', '').replace(')', '') + ",  " + str(step) +"\n")
-                            gateway_id = gateways_in_range (veh_id)
-                            if (gateway_id >= 0):
-                                file.write (str(veh_id) + " " + str(gateway_id) + " " + str(step))
-                            counter+=1
+        counter=0       #lora vehicles counter
+        for veh_id in traci.vehicle.getIDList():
+            if (traci.vehicle.getColor(veh_id) == (255, 255, 0, 255)):    #yellow, it's a new vehicle
+                #print ("new vehicle ", traci.vehicle.getTypeID(veh_id),  "  ", step, "  ", traci.vehicle.getPosition(veh_id))
+                if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and random.random() < loraVehiclePercentage): 
+                    traci.vehicle.setColor(veh_id, (255, 0, 0, 255))      #red, vehicle with Lora sensors
+                else:
+                    traci.vehicle.setColor(veh_id, (255, 0, 255, 255))    #purple, vehicle without Lora sensors
+            
+            # write the positions of the vehicles/sensors in the nodes files, the file will be used by simlorasf
+            if (step % interaction_step == 0):
+                with open (nodesFile, 'a') as nf,  open ("lunes/step" + str(step) + ".txt", "w") as file:
+                    if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and traci.vehicle.getColor(veh_id) == (255, 0, 0, 255)):
+                        nf.write(str(traci.vehicle.getPosition(veh_id)).replace('(', '').replace(')', '') + ",  " + str(step) +"\n")
+                        gateway_id = gateways_in_range(veh_id)
+                        if (gateway_id >= 0):
+                            file.write (str(veh_id) + " " + str(gateway_id) + " " + str(step))
+                        counter+=1
 
-            if (step % interaction_step == 0 and counter > 0 ):
-                print (counter, " lora vehicles at ", step)
-                os.system("python3 simlorasf/main.py -r 5000 -g " + str(len(gateways)) + " -n " + str(counter) + " -s SF_Lowest -d  20 -p 0.2 -z 60 -o 1 0")    
-                with open (nodesFile, 'a') as f:            #after the file has been used by simlorasf to kwow the location of the sensors, then it is emptied
-                    f.truncate(0)           
+        #execute lorasimsf
+        if (step % interaction_step == 0 and counter > 0 ):
+            print (counter, " lora vehicles at ", step)
+            os.system("python3 simlorasf/main.py -r 5000 -g " + str(len(gateways)) + " -n " + str(counter) + " -s SF_Lowest -d  20 -p 0.2 -z 60 -o 1 0")    
+            with open (nodesFile, 'a') as f:            #after the file has been used by simlorasf to kwow the location of the sensors, then it is emptied
+                f.truncate(0)           
 
-            conn1.simulationStep()
-            step += 1
-            time.sleep(0.2)
+        conn1.simulationStep()
+        step += 1
+        time.sleep(0.2)
 
     traci.close()
     sys.stdout.flush()
