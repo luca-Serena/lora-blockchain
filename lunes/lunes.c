@@ -93,10 +93,24 @@ int checkBlock(hash_node_t* node, Block b){
 
 
 int isBlockProducer (hash_node_t* node){
-	if ((int)simclock % env_block_frequency == 0 && ((int) simclock / env_block_frequency) % env_full_nodes == node->data->key){
+	int stakeCounter=0; //it counts all the stake of the full nodes at this moment
+	int posCounter=0; //counter of al stakes of nodes with minor id. It's for simulating PoS 
+	for (int i=0; i< env_full_nodes; i++){
+		hash_node_t * otherNode = hash_lookup(table, i);
+		stakeCounter += otherNode->data->coins;
+		if (otherNode->data->key < node->data->key) {
+			posCounter += otherNode->data->coins;
+		}
+	}
+	if (stakeCounter == 0 && ((int) simclock / env_block_frequency) % env_full_nodes == node->data->key){
 		return 1;
-	} else return 0;
+	} else if (stakeCounter > 0 && (int)simclock % stakeCounter >= posCounter && (int)simclock % stakeCounter < posCounter + node->data->coins){
+		return 1;
+	} else {
+	    return 0;
+	} 
 }
+
 
 
 void emptyTransactions (hash_node_t* node){
@@ -358,7 +372,14 @@ void lunes_send_transaction_to_neighbors (hash_node_t *node, Transaction tr) {
 //****************************************************GENERATE TRANSACTIONS MANAGEMENT*************************************************************************
 
 //generate the transactions: all customers subscribed to a certain flow of data will pay a reward to the the gateway and the sensor
-void generate_transaction (hash_node_t *node, int sensor, int gw, int ts){
+void generate_transaction (hash_node_t *node, int sensor, int gw, int ts, int provider){
+
+	if  ((provider < env_full_nodes && gw >= env_full_nodes && gw < env_full_nodes + env_gateway_nodes && sensor >= env_full_nodes + env_gateway_nodes &&
+		sensor < env_full_nodes + env_gateway_nodes + env_sensor_nodes) == 0){
+		perror("Error in the assignment of the IDs for sensors / gateways / providers\n");
+		fprintf(stdout, "____________%d %d %d\n", sensor, gw, provider);
+	    exit(-1);
+	}
 	for (int i=0; i < env_subs; i++){
 		if (subs_map [i][1] == sensor){  // a transaction for each couple of data-subscriber
 			Transaction t = {.timestamp = ts, .gateway = gw, .sensor = sensor, .customer = subs_map[i][0], .transactionID =  RND_Interval (S, 0, 1000000000000)};
@@ -376,15 +397,16 @@ void read_transactions(hash_node_t *node){
 	FILE *fp = fopen (transactionsFileName, "r");
 	if (fp != NULL){
      	while (fgets(line, sizeof(line), fp) != NULL) {     // Initialize variables to store the three fields
-	    	char field1[64], field2[64], field3[64]; 
+	    	char field1[64], field2[64], field3[64], field4[64]; 
 		    // Use sscanf to read the fields
-		    if (sscanf(line, "%s %s %s", field1, field2, field3) == 3) {
+		    if (sscanf(line, "%s %s %s %s", field1, field2, field3, field4) == 4) {
 		    	memmove(field1, field1 + 3, strlen(field1) - 2);
 				int sensor = atoi(field1) % env_sensor_nodes + env_full_nodes + env_gateway_nodes;
-				int gateway = atoi (field2);
-				int timestamp = atoi (field3);
+				int gateway = atoi (field2) + env_full_nodes;
+				int provider = atoi (field3);
+				int timestamp = atoi (field4);
 				//fprintf(stdout, "%d %d %d___\n", sensor, gateway, timestamp);
-				generate_transaction (node, sensor, gateway, timestamp);
+				generate_transaction (node, sensor, gateway, timestamp, provider);
 		    } else { // Handle cases where a line does not have three fields
 		        printf("Invalid line: %s\n", line);
 		        exit (-1);
@@ -425,7 +447,7 @@ void lunes_initialize_agents (hash_node_t *node) {
 
 void lunes_user_control_handler (hash_node_t *node) {
 
-	if (node->data->type == 'P' && isBlockProducer(node)) {
+	if (node->data->type == 'P' && (int)simclock % env_block_frequency == 0 && isBlockProducer(node)) {
 		int newHeight=0, prevBlockID = -1;
 		if (node->data->numBlocks > 0){
 			prevBlockID = node->data->blocks[node->data->numBlocks - 1].blockID;
@@ -437,6 +459,9 @@ void lunes_user_control_handler (hash_node_t *node) {
 		for (int i =0; i< MAX_TRANSACTIONS_IN_BLOCKS; i++){
 			if (node->data->transactions[i].transactionID > 0){
 				b.transactions[counter] = node->data->transactions[i];
+				hash_lookup(table, b.transactions[counter].gateway)->data->coins++;   //reward the gateway
+				hash_lookup(table, b.transactions[counter].sensor)->data->coins++;    //reward the sensor
+				hash_lookup(table, b.transactions[counter].provider)->data->coins++;  //reward the provider
 				counter++;
 				node->data->transactions[i] = emptyTransaction;
 			}
@@ -502,4 +527,3 @@ void lunes_user_block_event_handler (hash_node_t *node, int forwarder, Msg *msg)
 
 void lunes_user_confirmation_event_handler (hash_node_t *node, int forwarder, Msg *msg){
 }
-

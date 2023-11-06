@@ -20,6 +20,7 @@ class Gateway:
         return f"Gateway: (x={self.x}, y={self.y})"
 
 
+num_providers=5
 interaction_step=10
 total_steps = 1000
 loraVehiclePercentage= 0.8
@@ -67,6 +68,7 @@ def gateways_in_range (veh_id):
 
 # contains TraCI control loop
 def run():
+
     gateway_counter=0
     with open (gatewayFile, "r") as gfile:
         for line in gfile:          # read gateway positions and fill up the list of gateways
@@ -94,7 +96,8 @@ def run():
                         nf.write(str(traci.vehicle.getPosition(veh_id)).replace('(', '').replace(')', '') + ",  " + str(step) +"\n")
                         gateway_id = gateways_in_range(veh_id)
                         if (gateway_id >= 0):
-                            file.write (str(veh_id) + " " + str(gateway_id) + " " + str(step))
+                            provider = random.randint (0, num_providers -1)    #temporarily, the connection between data and provider is random
+                            file.write (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step))
                         counter+=1
 
         #execute lorasimsf
@@ -115,6 +118,15 @@ def run():
 # main entry point
 if __name__ == "__main__":
     options = get_options()
+
+    #eliminate all temporary files from previous executions
+    for filename in os.listdir('lunes'):
+        if filename.startswith('step'):
+            file_path = os.path.join('lunes', filename)
+            try:
+                os.remove(file_path)
+            except OSError as e:
+                print(f"Error when deleting file {file_path}: {e}")
 
     #initialize lunes
     os.chdir ("lunes")

@@ -21,6 +21,7 @@ typedef struct Transaction{
 	int customer;						        // id of the node sending a certain amount of coins
 	int gateway;						        // id of the gateway that has transmitted the data and will receive the reward
 	int sensor;						  	// id of the sensor the collected the data and will receive the reward
+	int provider;							
 }Transaction;
 
 
