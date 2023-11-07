@@ -23,7 +23,7 @@ class Gateway:
 num_providers=5
 interaction_step=10
 total_steps = 1000
-loraVehiclePercentage= 0.8
+loraVehiclePercentage= 0.5
 loraRange = 5000
 gatewayFile="gt.txt"
 nodesFile = "nodes.txt"
@@ -81,24 +81,29 @@ def run():
 
     while step < total_steps:
         counter=0       #lora vehicles counter
-        for veh_id in traci.vehicle.getIDList():
-            if (traci.vehicle.getColor(veh_id) == (255, 255, 0, 255)):    #yellow, it's a new vehicle
-                #print ("new vehicle ", traci.vehicle.getTypeID(veh_id),  "  ", step, "  ", traci.vehicle.getPosition(veh_id))
-                if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and random.random() < loraVehiclePercentage): 
-                    traci.vehicle.setColor(veh_id, (255, 0, 0, 255))      #red, vehicle with Lora sensors
-                else:
-                    traci.vehicle.setColor(veh_id, (255, 0, 255, 255))    #purple, vehicle without Lora sensors
-            
+        transactionList = list() #list of tuples with the info about the transactions
+        if (step % interaction_step == 0):
             # write the positions of the vehicles/sensors in the nodes files, the file will be used by simlorasf
-            if (step % interaction_step == 0):
-                with open (nodesFile, 'a') as nf,  open ("lunes/step" + str(step) + ".txt", "w") as file:
+            with open (nodesFile, 'a') as nf,  open ("lunes/step" + str(step) + ".txt", "w") as transactionsFile:
+                for veh_id in traci.vehicle.getIDList():
+                    if (traci.vehicle.getColor(veh_id) == (255, 255, 0, 255)):    #yellow, it's a new vehicle
+                        #print ("new vehicle ", traci.vehicle.getTypeID(veh_id),  "  ", step, "  ", traci.vehicle.getPosition(veh_id))
+                        if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and random.random() < loraVehiclePercentage): 
+                            traci.vehicle.setColor(veh_id, (255, 0, 0, 255))      #red, vehicle with Lora sensors
+                        else:
+                            traci.vehicle.setColor(veh_id, (255, 0, 255, 255))    #purple, vehicle without Lora sensors
+            
                     if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and traci.vehicle.getColor(veh_id) == (255, 0, 0, 255)):
                         nf.write(str(traci.vehicle.getPosition(veh_id)).replace('(', '').replace(')', '') + ",  " + str(step) +"\n")
                         gateway_id = gateways_in_range(veh_id)
                         if (gateway_id >= 0):
                             provider = random.randint (0, num_providers -1)    #temporarily, the connection between data and provider is random
-                            file.write (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step))
+                            transactionList.append (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step) + "\n")
+                            #file.write (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step) + "\n")
                         counter+=1
+
+                for elem in transactionList:
+                    transactionsFile.write (elem)
 
         #execute lorasimsf
         if (step % interaction_step == 0 and counter > 0 ):
@@ -109,7 +114,7 @@ def run():
 
         conn1.simulationStep()
         step += 1
-        time.sleep(0.2)
+        time.sleep(0.1)
 
     traci.close()
     sys.stdout.flush()

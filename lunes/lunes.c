@@ -112,15 +112,6 @@ int isBlockProducer (hash_node_t* node){
 }
 
 
-
-void emptyTransactions (hash_node_t* node){
-	for (int i =0; i < node->data->numTransactions; i++){
-		node->data->transactions[i] = emptyTransaction;
-	}
-}
-
-
-
 //find if a block has already been produced 
 int isThereBlockGivenHeight (hash_node_t* node, int heightRequired){
 	if (heightRequired == 0){
@@ -169,7 +160,7 @@ int isThereBlockGivenHeight (hash_node_t* node, int heightRequired){
  		}
  	}
  	if (found == 0){
- 		printf("AT %d BUFFER FOR REQUESTS IS FULL FOR NODE %d. TRY TO INCREASE IT\n", (int)simclock, node->data->key);
+ 		printf("AT %d BUFFER FOR TRANSACTIONS IS FULL FOR NODE %d. TRY TO INCREASE IT. NOW IT IS %d\n", (int)simclock, node->data->key, TRANSACTION_BUFFER_SIZE);
  		fflush(stdout);
 		exit(-1);
  	}
@@ -181,6 +172,7 @@ void print_block(Block *b){
 	for (int i = 0; i< MAX_TRANSACTIONS_IN_BLOCKS; i++){
 		if (b->transactions[i].transactionID > 0){
 			printf("tx: %ld   ", b->transactions[i].transactionID);
+			//printf("tx: %d %d %d %d -- ", b->transactions[i].sensor, b->transactions[i].gateway, b->transactions[i].provider, b->transactions[i].customer);
 		}
 		else break;
 	}
@@ -188,51 +180,8 @@ void print_block(Block *b){
 }
 
 
+
 /*
-//find a request given ID among the set of requests of a node
-int findRequest (long int reqID, hash_node_t* node){
-	int res = -1;
-	for (int i = 0; i < TRANSACTION_BUFFER_SIZE; i++){
-		//fprintf (stdout, "%d rr %d -- %d\n", reqID, node->data->requests[i].requestID, node->data->key);
-		if (node->data->requests[i].requestID == reqID){
-			res = i;
-			break;
-		}
-	}
-	return res;
-}
-
-
-
-//which is the last finalized block of the subnet?
-int lastBlock (hash_node_t* node){
-	int index = -1;
-	for (int i = node->data->numBlocks-1; i>= 0; i--){
-		if (node->data->blocks[i].blockID > 0 && node->data->blocks[i].finalizations > env_nodes_per_subnet * 2/3 ){
-			index = i;
-			break;
-		}
-	}
-	return index;
-}
-
-
-//Find if a request is in the local list of requests of a node
-int isInRequestList(hash_node_t* node, Request* req){
-	if (req->requestID <= 0){
-		return -1;
-	}
-	int res = -1;
-	for (int i = 0; i < TRANSACTION_BUFFER_SIZE; i++){
-		if (node->data->requests[i].requestID == req->requestID){
-			res = i;
-			break;
-		}
-	}
-	return res;
-}
-
-
 
 void print_blockchain (hash_node_t* node){
 	int last_index = lastBlock(node);
@@ -373,7 +322,6 @@ void lunes_send_transaction_to_neighbors (hash_node_t *node, Transaction tr) {
 
 //generate the transactions: all customers subscribed to a certain flow of data will pay a reward to the the gateway and the sensor
 void generate_transaction (hash_node_t *node, int sensor, int gw, int ts, int provider){
-
 	if  ((provider < env_full_nodes && gw >= env_full_nodes && gw < env_full_nodes + env_gateway_nodes && sensor >= env_full_nodes + env_gateway_nodes &&
 		sensor < env_full_nodes + env_gateway_nodes + env_sensor_nodes) == 0){
 		perror("Error in the assignment of the IDs for sensors / gateways / providers\n");
@@ -383,6 +331,9 @@ void generate_transaction (hash_node_t *node, int sensor, int gw, int ts, int pr
 	for (int i=0; i < env_subs; i++){
 		if (subs_map [i][1] == sensor){  // a transaction for each couple of data-subscriber
 			Transaction t = {.timestamp = ts, .gateway = gw, .sensor = sensor, .customer = subs_map[i][0], .transactionID =  RND_Interval (S, 0, 1000000000000)};
+			cache_element c = {.id = t.transactionID, .timestamp = (int)simclock};
+			add_into_cache(node, c);
+			add_transaction(node, t);
 			lunes_send_transaction_to_neighbors (node, t);
 		}
 	}
@@ -447,7 +398,7 @@ void lunes_initialize_agents (hash_node_t *node) {
 
 void lunes_user_control_handler (hash_node_t *node) {
 
-	if (node->data->type == 'P' && (int)simclock % env_block_frequency == 0 && isBlockProducer(node)) {
+	if (node->data->type == 'P' && (int)simclock % env_block_frequency == 2 && isBlockProducer(node)) {
 		int newHeight=0, prevBlockID = -1;
 		if (node->data->numBlocks > 0){
 			prevBlockID = node->data->blocks[node->data->numBlocks - 1].blockID;
@@ -467,6 +418,9 @@ void lunes_user_control_handler (hash_node_t *node) {
 			}
 		}
 		node->data->numBlocks++;
+		add_block(node, b);
+		cache_element c = {.id = b.blockID, .timestamp = (int)simclock};
+		add_into_cache (node, c);
 		lunes_send_block_to_neighbors (node, b);
 		print_block(&b);
 	}
@@ -500,7 +454,7 @@ void lunes_user_register_event_handler (hash_node_t *node) {
 void lunes_user_transaction_event_handler (hash_node_t *node, int forwarder, Msg *msg) {
 	Transaction tr = msg->transaction.transaction;
 	if (is_in_cache(node, tr.transactionID) == 0){ //if it not in the cache
-		cache_element c = {.id = msg->block.block.blockID, .timestamp = (int)simclock};
+		cache_element c = {.id = tr.transactionID, .timestamp = (int)simclock};
 		add_into_cache (node, c);
 		add_transaction(node, tr);
  	}

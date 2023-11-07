@@ -650,8 +650,8 @@ int main(int argc, char* argv[]) {
 						snprintf(tempFileName, sizeof(tempFileName), "%s%d%s", "step", (int) (simclock), ".txt");						
 						FILE *file = fopen(tempFileName, "r");
 					        while (file == NULL ) {
-						    usleep (200000); //wait for 0.2s	
-						    file = fopen(tempFileName, "r");		            
+						    file = fopen(tempFileName, "r");	
+						    usleep (100000); //wait for 0.1s	
 					        } 
 					        Generate_Computation_and_Interactions( NSIMULATE * NLP );
 					        fclose(file);

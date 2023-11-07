@@ -47,7 +47,7 @@
 
 /**************************** MODEL ****************************************/
 // Simulation length (final clock value), default value
-#define END_CLOCK			100.0
+#define END_CLOCK			1000
 
 // This timestep is chosen to build the aggregation structure
 #define BUILDING_STEP			3
@@ -60,15 +60,13 @@
 //		than the timestep size
 #define FLIGHT_TIME			1.0
 
-#define CACHE_SIZE			100
+#define CACHE_SIZE			1000
 
 #define BLOCKS_BUFFER_SIZE		2000
 
-#define TRANSACTION_BUFFER_SIZE	500
+#define TRANSACTION_BUFFER_SIZE	1000
 
-#define MAX_TRANSACTIONS_IN_BLOCKS	20
-
-#define MAX_CROSS_SUBNETS 		5
+#define MAX_TRANSACTIONS_IN_BLOCKS	200
 
 /************************ SIMULATOR  LIMITS ********************************/
 

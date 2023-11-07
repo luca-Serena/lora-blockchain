@@ -70,9 +70,8 @@ typedef struct hash_data_t {
 	int			numBlocks;
 	int 			coins;						// Amount of coins owned by a certain node
 	int 			confirmations;					// number of confirmations about the validity of the block
-	Transaction             transactions[TRANSACTION_BUFFER_SIZE]; 	// Transactions waiting to be approved
-	int 			numTransactions;
-        cache_element           cache [CACHE_SIZE];				// cache
+	Transaction            transactions[TRANSACTION_BUFFER_SIZE]; 	// Transactions waiting to be approved
+        cache_element          cache [CACHE_SIZE];				// cache
 } hash_data_t;
 
 #endif /* __ENTITY_DEFINITION_H */
