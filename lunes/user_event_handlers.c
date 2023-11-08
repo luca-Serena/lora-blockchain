@@ -192,7 +192,7 @@ int	add_entity_state_entry (unsigned int key, value_element *val, int id, hash_n
 	if ( g_hash_table_size(node->data->state) > MAX_MIGRATION_DYNAMIC_RECORDS ) {
 
 		// No more entries can be added, the resulting state would be impossible to migrate
-		fprintf(stdout, "%12.2f node: FATAL ERROR, [%5d] impossible to add new elements to the state hash table of this node, see constant MAX_MIGRATION_DYNAMIC_RECORDS in file: sim-parameters.h\n", simclock, id);
+		fprintf(stdout, "%12.2f node: FATAL ERROR, [%5d] impossible to add new elements to the state hash table of this node, see constant MAX_MIGRATION_DYNAMIC_RECORDS in file: lunes_constants.h\n", simclock, id);
 		fflush(stdout);
 		exit(-1);
 	}
@@ -206,13 +206,6 @@ int	add_entity_state_entry (unsigned int key, value_element *val, int id, hash_n
 		state_e->elements = *val;
 
 		g_hash_table_insert (node->data->state, &(state_e->key), &(state_e->elements));
-
-		#ifdef DEBUG
-		fprintf(stdout, "%12.2f node: [%5d] local state key: %d, local hash_size: %d\n", simclock, id, state_e->key, g_hash_table_size (node->data->state));
-
-		fflush(stdout);
-		#endif
-
 		return (1);
 	}
 	else {
@@ -259,45 +252,6 @@ int	modify_entity_state_entry (unsigned int key, unsigned int new_value, hash_no
   	Ping another SE, creating and sending a 'P' type message
 	Usually called by user_generate_interactions_handler ()
  */
-void execute_ping (double ts, hash_node_t *src, hash_node_t *dest, unsigned short ttl, unsigned int value_to_send, double timestamp, unsigned int creator) {
-
-	PingMsg		msg;
-	unsigned int	message_size;
-
-	// Defining the message type
-	msg.ping_static.type = 'P';
-	msg.ping_static.timestamp = timestamp;
-	msg.ping_static.ttl = ttl;
-	msg.ping_static.msgvalue = value_to_send;
-	msg.ping_static.creator = creator;
-
-	// In this specific case, the number of records in the ping message is set to zero
-	msg.ping_static.dyn_records = 0;
-
-	// To reduce the network overhead, only the used part of the message is really sent
-	message_size = sizeof(struct _ping_static_part) + (msg.ping_static.dyn_records * sizeof(struct _ping_record));
-
-	// Dynamic boudaries check
-	if (msg.ping_static.dyn_records > MAX_PING_DYNAMIC_RECORDS) {
-
-		fprintf(stdout, "%12.2f FATAL ERROR, the number of entries in the dynamic part of the ping message is bigger than MAX_PING_DYNAMIC_RECORDS!\n", simclock);
-		fflush(stdout);
-		exit(-1);
-	}
-
-	// Buffer check
-	if (message_size > BUFFER_SIZE) {
-		fprintf(stdout, "%12.2f FATAL ERROR, the outgoing BUFFER_SIZE is not sufficient!\n", simclock);
-		fflush(stdout);
-		exit(-1);
-	}
-
-	// Real send
-	GAIA_Send (src->data->key, dest->data->key, ts, (void *)&msg, message_size);
-
-	// Statistics
-	lp_total_sent_pings++;
-}
 
 
 void execute_transaction(double ts, hash_node_t *src, hash_node_t *dest, unsigned short ttl, Transaction tr, double timestamp, unsigned int creator) {
@@ -445,10 +399,6 @@ void	user_link_event_handler (hash_node_t *node, int id, Msg *msg) {
 		fflush(stdout);
 		exit(-1);
 	}
-
-	#ifdef AG_DEBUG
-	fprintf(stdout, "%12.2f node: [%5d] received a link request from agent [%5d], total received requests: %d\n", simclock, node->data->key, id, g_hash_table_size(node->data->state));
-	#endif
 }
 
 /*****************************************************************************

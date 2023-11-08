@@ -22,11 +22,6 @@
 #include "utils.h"
 #include "user_event_handlers.h"
 
-/*-------------------------- D E B U G --------------------------------------*/
-// To activate DEBUG see the file:	sim-parameters.h
-/*---------------------------------------------------------------------------*/
-
-
 /*-------- G L O B A L     V A R I A B L E S --------------------------------*/
 
 int      	NSIMULATE, 		// Number of Interacting Agents (Simulated Entities) per LP
@@ -108,10 +103,8 @@ static	se_list		migr_list,
 **************************************************************************** */
 
 
-/*
-        Computation and Interactions generation: called at each timestep
-	it will provide the model behavior
-*/
+
+//      Computation and Interactions generation: called at each timestep it will provide the model behavior
 static void     Generate_Computation_and_Interactions (int total_SE) {
 
         // Call the appropriate user event handler
@@ -119,10 +112,8 @@ static void     Generate_Computation_and_Interactions (int total_SE) {
 }
 
 
-/*
-	SEs initial generation: called once when global variables have been 
-	initialized.
-*/
+
+//	SEs initial generation: called once when global variables have been initialized.
 static void Generate (int count) {
 
 	int	i;
@@ -132,133 +123,12 @@ static void Generate (int count) {
 		// In this case every entity can be migrated
 		GAIA_Register ( MIGRABLE );
 
-		// NOTE:	the internal state of entities is initialized in the 
-		//		*	register_event_handler()
+		// NOTE:	the internal state of entities is initialized in the register_event_handler()
 		//		see in the following of this source file
 	}
 }
 
-#ifdef MIGRATION_INFO
-/*
-	Performs the migration of the flagged Simulated Entities
-*/
-static int UNUSED ScanMigrating () {
 
-	// Current entity
-	struct hash_node_t 	*se = NULL;
-
-	// Migration message
-	MigrMsg     		m;
-
-	// Number of entities migrated in this step, in this LP
-	int 			migrated_in_this_step = 0;
-
-	// Cursor used for the local state of entities
-	int 			state_position;
-
-	// Total size of the message that will be sent
-	unsigned int		message_size;
-
-	// Iterator to scan the whole state hashtable of entities
-	GHashTableIter		iter;
-	gpointer		key, value;
-
-
-	// The SEs to migrate have been already identified by GAIA
-	//	and placed in the migration list (mlist) when the
-	//	related NOTIF_MIGR was received
-	while ( ( se = list_del( mlist ) ) ) {
-
-		// Statistics
-		migrated_in_this_step++;
-
-		// A new "M" (migration) type message is created
-		m.migration_static.type	= 'M';
-
-		// The state of each IA is composed of a set of elements
-		//	let's start from the first one
-		state_position = 0;
-
-                // The static part of the agents state has to be inserted in 
-                //	the migration message  
-                m.migration_static.s_state = se->data->s_state;
-
-                // Dynamic part of the agents state
-                //
-		// The hashtable is empty
-		if ( se->data->state == NULL ) {
-			
-			#ifdef DEBUG
-			fprintf(stdout, "ID: %d is empty\n", se->data->key);
-			fflush(stdout);
-			#endif	
-
-			// No dynamic part in the migration message
-			m.migration_static.dyn_records = 0;
-		} else {
-			// The state of the SE has to be inserted in the migration message as a set of records
-			//	number of records in the dynamic part of the migration message
-			m.migration_static.dyn_records = g_hash_table_size(se->data->state);
-		}
-
-		// Copying the local state of the migrating entity in the payload of the migration message
-		//	for each record in the entity state a new record is appended in the dynamic part
-		//	of the migration message
-		if ( se->data->state != NULL ) {
-
-			#ifdef DEBUG
-			int	tmp = 0;
-			#endif
-
-			// Hashtable iterator
-			g_hash_table_iter_init (&iter, se->data->state);
-
-			while (g_hash_table_iter_next (&iter, &key, &value)) {
-			
-				m.migration_dynamic.records[state_position].key =		*(unsigned int *)key;
-				m.migration_dynamic.records[state_position].elements = 		*((value_element *)value);
-
-				#ifdef DEBUG
-				tmp++;
-
-				fprintf(stdout, "%12.2f node: [%5d] migration, copied key: %d, (%4d/%4d)\n", simclock, se->data->key, m.migration_dynamic.records[state_position].key, tmp, g_hash_table_size(se->data->state));
-
-				fflush(stdout);
-				#endif
-
-				state_position++;
-			}
-		}
-
-		// It is time to clean up the hash table of the migrated node
-		if ( se->data->state != NULL ) {
-
-			// In the hash table creation it has been provided the cleaning function that is g_free ()		
-			g_hash_table_destroy (se->data->state);
-		}
-
-		// Calculating the real size of the migration message
-		message_size = sizeof( struct _migration_static_part ) + ( m.migration_static.dyn_records * sizeof( struct state_element ) );
-
-		if ( message_size >= BUFFER_SIZE ) {
-
-			// I'm trying to send a message that is larger than the buffer
-			fprintf(stdout, "%12.2f node: FATAL ERROR, trying to send a message (migration) that is larger than: %d !\n", simclock, BUFFER_SIZE);
-			fflush(stdout);
-			exit(-1);
-		}
-
-		// The migration is really executed
-		GAIA_Migrate ( se->data->key, (void *)&m, message_size );
-
-		// Removing the migrated SE from the local list of migrating nodes
-		hash_delete( LSE, stable, se->data->key );
-	}
-
-	// Returning the number of migrated SE (for statistics)
-	return ( migrated_in_this_step );
-}
-#endif
 /*---------------------------------------------------------------------------*/
 
 
@@ -291,7 +161,7 @@ struct hash_node_t*	validation_model_events (int id, int to, Msg *msg) {
  	A new SE has been created, we have to insert it into the global 
 	and local hashtables, the correct key to use is the sender's ID
 */
-static void	register_event_handler (int id, int lp) {
+static void register_event_handler (int id, int lp) {
 
  	hash_node_t 		*node;
 	
@@ -317,8 +187,7 @@ static void	register_event_handler (int id, int lp) {
 				exit(-1);
 			}
 		}
-	}
-	else {
+	} else {
 		// The model is unable to add the new SE in the global hash table
 		fprintf(stdout, "%12.2f node: FATAL ERROR, [%5d] impossible to add new elements to the global hash table\n", simclock, id);
 		fflush(stdout);
@@ -332,11 +201,6 @@ static void	register_event_handler (int id, int lp) {
 static void notify_migration_event_handler (int id, int to) {
 
 	hash_node_t *node;
-
-
-	#ifdef DEBUG
-	fprintf(stdout, "%12.2f agent: [%5d] is going to be migrated to LP [%5d]\n", simclock, id, to);
-	#endif
 	
 	// The GAIA framework has decided that a local SE has to be migrated,
 	//	the migration can NOT be executed immediately because the SE
@@ -367,8 +231,7 @@ static void notify_ext_migration_event_handler (int id, int to) {
 
 	
 	// A migration that does not directly involve the local LP is going to happen in
-	//	the simulation. In some special cases the local LP has to take care of 
-	//	this information 
+	//	the simulation. In some special cases the local LP has to take care of this simulation
 	if ( ( node = hash_lookup ( table, id ) ) )  {
 		node->data->lp			= to;		// Destination LP of the migration
 		node->data->s_state.changed	= YES;
@@ -381,28 +244,11 @@ static void notify_ext_migration_event_handler (int id, int to) {
 
 /*
 	Migration-event manager (the real migration handler)
-
-	This handler is executed when a migration message is received and
-	therefore a new SE has to be accomodated in the local LP
+	This handler is executed when a migration message is received and therefore a new SE has to be accomodated in the local LP
 */
 static void	migration_event_handler (int id, Msg *msg) {
 
-	hash_node_t 		*node;
-
-
-	#ifdef DEBUG
-	int	tmp;
-
-
-	fprintf(stdout, "%12.2f agent: [%5d] has been migrated in this LP\n", simclock, id);
-
-	for (tmp = 0; tmp < msg->migr.migration_static.dyn_records; tmp++) {
-
-		fprintf(stdout, "%12.2f - state position: %d, key %d\n", simclock, tmp, msg->migr.migration_dynamic.records[tmp].key);
-
-		fflush(stdout);
-	}
-	#endif
+	hash_node_t *node;
 
 	if ( ( node = hash_lookup ( table, id ) ) ) {
 		// Inserting the new SE in the local table
@@ -422,7 +268,7 @@ static void	migration_event_handler (int id, Msg *msg) {
 /*
 	Loading the configuration file of the simulator
 */
-static void UNUSED LoadINI(char *ini_name) {
+static void LoadINI(char *ini_name) {
 
 	int	ret;	
 	char	data[64];
@@ -459,20 +305,10 @@ int main(int argc, char* argv[]) {
 		max_data;		// Maximum size of incoming messages
 
 	int	from,			// ID of the message sender 
-		to,			// ID of the message receiver
-		tot = 0;		// Total number of executed migrations
-
-	int 	loc,			// Number of messages with local destination (intra-LP)
-		rem, 			// Number of messages with remote destination (extra-LP)
-		migr;			// Number of executed migrations 
-		//t;			// Total number of messages (local + remote)
+		to;			// ID of the message receiver
 
 	double  Ts;			// Current timestep
 	Msg	*msg;			// Generic message
-
-	#ifdef MIGRATION_INFO
-	int	migrated_in_this_step;	// Number of entities migrated in this step, in the local LP
-	#endif
 
 	struct hash_node_t		*tmp_node;			// Tmp variable, a node in the hash table
 	char				*tmp_filename;			// File descriptors for simulation traces
@@ -509,8 +345,7 @@ int main(int argc, char* argv[]) {
 	
 	// Returns the length of the timestep
 	//	this value is defined in the "CHANNELS.TXT" configuration file
-	//	given that GAIA is based on the time-stepped synchronization algorithm
-	//	it retuns the size of a step
+	//	given that GAIA is based on the time-stepped synchronization algorithm it retuns the size of a step
 	step = GAIA_GetStep();
 
 	// Due to synchronization constraints The FLIGHT_TIME has to be bigger than the timestep size
@@ -530,17 +365,11 @@ int main(int argc, char* argv[]) {
 	//  Used to set the ID of the first simulated entity (SE) in the local LP
 	GAIA_SetFstID ( start );
 
-	// User level handler to get some configuration parameters from the runtime environment
-	// (e.g. the GAIA parameters and many others)
+	// User level handler to get some configuration parameters from the runtime environment (e.g. the GAIA parameters and many others)
 	user_environment_handler();
 
 	// Initialization of the random numbers generator
 	RND_Init (S, rnd_file, LPID);
-
-	// Output file for statistics (communication ratio data)
-	/*dat_filename = malloc(1024);
-	snprintf(dat_filename, 1024, "%stmp-evaluation-lcr.dat", "");
-	lcr_fp = fopen(dat_filename, "w");*/
 	
 	// Data structures initialization (hash tables and migration list)
 	hash_init ( table,  NSIMULATE * NLP );		// Global hashtable: all the SEs
@@ -599,8 +428,7 @@ int main(int argc, char* argv[]) {
 		switch ( msg_type ) {
 			
 			// The migration of a locally managed SE has to be done,
-			//	calling the appropriate handler to insert the SE identifier
-			//	in the list of pending migrations
+			//	calling the appropriate handler to insert the SE identifier in the list of pending migrations
 			case NOTIF_MIGR:
 				notify_migration_event_handler ( from, to );
 			break;
@@ -638,9 +466,8 @@ int main(int argc, char* argv[]) {
 
 					// Simulating the interactions among SEs
 					//
-					//	in the last (env_end_clock - FLIGHT_TIME) timesteps
-					//	no pings will be sent because we wanna check if all
-					//	sent pings are correctly received
+					// in the last (env_end_clock - FLIGHT_TIME) timesteps no pings will be sent
+					// because we wanna check if all sent pings are correctly received
 					if ( simclock < ( env_end_clock - FLIGHT_TIME ) ) { 
 
 					    if (simclock < EXECUTION_STEP || (int)simclock % 10 != 0 ){
@@ -656,48 +483,8 @@ int main(int argc, char* argv[]) {
 					        Generate_Computation_and_Interactions( NSIMULATE * NLP );
 					        fclose(file);
 				            }
-					}
-
-					// The pending migration of "flagged" SEs has to be executed,
-					//	the SE to be migrated were previously inserted in the migration
-					//	list due to the receiving of a "NOTIF_MIGR" message sent by 
-					//	the GAIA framework
-					#ifdef MIGRATION_INFO
-					migrated_in_this_step = ScanMigrating ();
-					#endif
-
-					// The LP that manages statistics prints out them
-					if( LPID == LP_STAT ) {		// Verbose output	
-
-						// Some of them are provided by the GAIA framework
-						GAIA_GetStatistics( &loc, &rem, &migr);
-
-						// Total number of interactions (in the timestep)
-						//t 	= loc + rem;
-
-						// Total number of migrations (in the simulation run)
-						tot	+= migr;
-
-						// Printed fields:
-						// 	elapsed Wall-Clock-Time up to this step
-						//	timestep number
-						//	number of entities in this LP
-						//	percentage of local communications (intra-LP)
-						//	percentage of remote communications (inter-LP)
-						//	number of migrations in this timestep
-						#ifdef MIGRATION_INFO
-						fprintf(stdout, "- [%11.2f]\t[%6.5f]\t%4.0f\t%4d\t%2.2f\t%2.2f\t%d\n", TIMER_DIFF(t2,t1), simclock, 			
-						(float)stable->count, migrated_in_this_step, (float)loc / (float)t * 100.0, (float)rem / (float)t * 100.0, migr );
-						#endif
-
-					}  
-					#ifdef MIGRATION_INFO
-					else {	// Reduced output
-	
-						fprintf(stdout, "[%11.2fs]   %12.2f [%d]\t[%4d]\n", TIMER_DIFF(t2,t1), simclock, stable->count, migrated_in_this_step);
 					} 
-					#endif  
-					// Now it is possible to advance to the next timestep
+					
 					simclock = GAIA_TimeAdvance();
 				}
 				else {
@@ -705,10 +492,8 @@ int main(int argc, char* argv[]) {
 					TIMER_NOW(t2);
 					/*
 					fprintf(stdout, "\n\n");
-					fprintf(stdout, "### Termination condition reached (%d)\n", tot);
+					fprintf(stdout, "### Termination condition reached\n");
 					fprintf(stdout, "### Clock           %12.2f\n", simclock);
-					fprintf(stdout, "### Elapsed Time    %11.2fs\n",TIMER_DIFF(t2,t1));
-					fprintf(stdout, "### Total sent pings: %10ld; Total received pings: %10ld", get_total_sent_pings(), 							get_total_received_pings());
 					fflush(stdout);	
 					*/
 					end_reached = 1;

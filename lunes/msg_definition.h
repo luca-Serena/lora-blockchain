@@ -34,34 +34,6 @@ typedef union   msg			Msg;
 //		of the dynamic part (as number of records)
 //	-	a dynamic part that is composed of a sequence of records
 // **********************************************
-// PING MESSAGES
-// **********************************************
-// Record definition for dynamic part of ping messages (THIS DYNAMIC PART IS NOT USED IN LUNES)
-struct _ping_record {
-	unsigned int	key;
-	unsigned int	value;
-};
-//
-// Static part of ping messages
-struct _ping_static_part {
-	char		type;					// Message type
-	float		timestamp;				// Timestep of creation (of the message)
-	unsigned short	ttl;					// Time-To-Live
-	unsigned int	msgvalue;				// Message Identifier
-	unsigned int	creator;				// ID of the original sender of the message
-	unsigned int	dyn_records;				// Number of records in the dynamic part of the message
-};
-//
-// Dynamic part of ping messages
-struct _ping_dynamic_part {
-	struct _ping_record	records[MAX_PING_DYNAMIC_RECORDS];		// Adjuntive records
-};
-//
-// Ping message
-struct _ping_msg {
-	struct	_ping_static_part		ping_static;			// Static part
-	struct	_ping_dynamic_part		ping_dynamic;			// Dynamic part
-};
 
 
 struct _transaction_msg  {
@@ -126,7 +98,6 @@ struct _link_msg {
 union msg {
 	char			type;
 	LinkMsg		link;
-    	PingMsg		ping;
     	TrnMsg			transaction;
 	BlockMsg	        block;
 	ConfirmationMsg	confirmation;

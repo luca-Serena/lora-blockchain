@@ -4,10 +4,10 @@ endif
 
 include         $(ROOT)/config.mak
 
-INCLDIR		= $(ROOT)/INCLUDE
+INCLDIR	= $(ROOT)/INCLUDE
 LIBDIR		= $(ROOT)/LIB
 BINS		= sima blockchain  spacer
-HEADERS		= sim-parameters.h utils.h user_event_handlers.h msg_definition.h entity_definition.h lunes.h lunes_constants.h
+HEADERS	= utils.h user_event_handlers.h msg_definition.h entity_definition.h lunes.h lunes_constants.h
 #------------------------------------------------------------------------------
 
 CFLAGS		+= $(OPTFLAGS) -I. -I$(INCLDIR) `pkg-config --cflags glib-2.0`

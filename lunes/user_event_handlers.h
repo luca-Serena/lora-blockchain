@@ -33,9 +33,6 @@ void		user_control_handler ();
 void		user_bootstrap_handler ();
 void		user_environment_handler ();
 void		user_shutdown_handler ();
-//	Statistics
-unsigned long	get_total_sent_pings ();
-unsigned long	get_total_received_pings ();
 
 /* ************************************************************************ */
 /* 		S U P P O R T     F U N C T I O N S			    */
@@ -47,8 +44,6 @@ void		execute_link (double, hash_node_t *, hash_node_t *);
 void		execute_transaction (double, hash_node_t *, hash_node_t *, unsigned short , Transaction, double, unsigned int);
 void		execute_block (double, hash_node_t *, hash_node_t *, unsigned short , Block, double, unsigned int);
 void		execute_confirmation(double, hash_node_t *, hash_node_t *, unsigned short , long int, double, unsigned int);
-void		execute_ping (double, hash_node_t *, hash_node_t *, unsigned short, unsigned int, double, unsigned int);
-
 
 #endif /* __USER_EVENT_HANDLERS_H */
 

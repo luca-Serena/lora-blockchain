@@ -105,6 +105,7 @@ int isBlockProducer (hash_node_t* node){
 	if (stakeCounter == 0 && ((int) simclock / env_block_frequency) % env_full_nodes == node->data->key){
 		return 1;
 	} else if (stakeCounter > 0 && (int)simclock % stakeCounter >= posCounter && (int)simclock % stakeCounter < posCounter + node->data->coins){
+		//printf ("chosen node: %d, with %d out of %d", node->data->key, node->data->coins, stakeCounter); //DEBUG
 		return 1;
 	} else {
 	    return 0;
@@ -169,14 +170,16 @@ int isThereBlockGivenHeight (hash_node_t* node, int heightRequired){
 
 void print_block(Block *b){
 	printf(" Block with ID %ld at height %d created by node %d at %d ", b->blockID, b->height, b->blockMaker, b->timestamp);
+	int counter = 0;
 	for (int i = 0; i< MAX_TRANSACTIONS_IN_BLOCKS; i++){
 		if (b->transactions[i].transactionID > 0){
-			printf("tx: %ld   ", b->transactions[i].transactionID);
+			counter ++;
+			//DEBUG
+			//printf("tx: %ld   ", b->transactions[i].transactionID);
 			//printf("tx: %d %d %d %d -- ", b->transactions[i].sensor, b->transactions[i].gateway, b->transactions[i].provider, b->transactions[i].customer);
 		}
-		else break;
 	}
-	printf("\n");
+	printf("with %d transactions\n", counter);
 }
 
 
@@ -382,6 +385,7 @@ void lunes_initialize_agents (hash_node_t *node) {
 
 	if (node->data->key < env_full_nodes){  //full nodes - nodes by providers
 		node->data->type = 'P';
+		node->data->coins = 10;
 	} else if (node->data->key < env_full_nodes + env_gateway_nodes) {
 		node->data->type = 'G';
 	} else if (node->data->key < env_full_nodes + env_gateway_nodes + env_sensor_nodes) {
@@ -407,7 +411,7 @@ void lunes_user_control_handler (hash_node_t *node) {
 		int counter=0;
 		Block b = {.blockID=RND_Interval (S, 0, 1000000000000), .timestamp = (int)simclock, .blockMaker = node->data->key,
 					.previousBlockID = prevBlockID, .height = newHeight, .confirmations = 1};
-		for (int i =0; i< MAX_TRANSACTIONS_IN_BLOCKS; i++){
+		for (int i =0; i< TRANSACTION_BUFFER_SIZE; i++){
 			if (node->data->transactions[i].transactionID > 0){
 				b.transactions[counter] = node->data->transactions[i];
 				hash_lookup(table, b.transactions[counter].gateway)->data->coins++;   //reward the gateway
@@ -415,6 +419,10 @@ void lunes_user_control_handler (hash_node_t *node) {
 				hash_lookup(table, b.transactions[counter].provider)->data->coins++;  //reward the provider
 				counter++;
 				node->data->transactions[i] = emptyTransaction;
+				if (counter == MAX_TRANSACTIONS_IN_BLOCKS){
+					printf("max reached\n");
+					break;
+				}
 			}
 		}
 		node->data->numBlocks++;

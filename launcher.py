@@ -27,7 +27,9 @@ loraVehiclePercentage= 0.5
 loraRange = 5000
 gatewayFile="gt.txt"
 nodesFile = "nodes.txt"
+osmLocation = "locations/bologna-5000"
 gateways = list()
+
 
 
 # we need to import some python modules from the $SUMO_HOME/tools directory
@@ -145,5 +147,6 @@ if __name__ == "__main__":
         sumoBinary = checkBinary('sumo-gui')
 
     # traci starts sumo as a subprocess and then this script connects and runs
-    traci.start([sumoBinary, "-c", "osm.sumocfg", "--tripinfo-output", "tripinfo.xml"], label = "sim1")
+    traci.start([sumoBinary, "-c", osmLocation + "/osm.sumocfg", "--tripinfo-output", osmLocation + "/tripinfo.xml"], label = "sim1")
+    #traci.start([sumoBinary, "-c", "osm.sumocfg", "--tripinfo-output", "tripinfo.xml"], label = "sim1")
     run()

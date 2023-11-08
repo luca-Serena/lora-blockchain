@@ -16,7 +16,7 @@
 #define __UTILS_H
 
 #include <glib.h>
-#include "sim-parameters.h"
+#include "lunes_constants"
 #include "entity_definition.h"
 
 #define UNUSED                  __attribute__ ((__unused__))
