@@ -16,7 +16,7 @@
 #define __UTILS_H
 
 #include <glib.h>
-#include "lunes_constants"
+#include "lunes_constants.h"
 #include "entity_definition.h"
 
 #define UNUSED                  __attribute__ ((__unused__))
