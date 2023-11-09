@@ -38,16 +38,13 @@ class SimulationResult:
         self.txEnergyConsumption = 0
 
     def __repr__(self):
-        #res  = ' Number of packets: {}\n'.format(self.totalPacket)
-        #res += ' Number of successfully transmitted packets: {}\n'.format(self.successfulPacket)
-        #res += ' Number of under sensitivity packets: {}\n'.format(self.underSensitivityPacket)
-        #res += ' Number of interfered packets: {}\n'.format(self.interferencePacket)
-        res = ' PDR: {:.3f} %\n'.format(self.pdr)
-        #res += ' Network throughput: {:.3f} bps\n'.format(self.throughput)
+        res  = ' Number of packets: {}\n'.format(self.totalPacket)
+        res += ' Number of successfully transmitted packets: {}\n'.format(self.successfulPacket)
+        res += ' Number of under sensitivity packets: {}\n'.format(self.underSensitivityPacket)
+        res += ' Number of interfered packets: {}\n'.format(self.interferencePacket)
+        res += ' PDR: {:.3f} %\n'.format(self.pdr)
+        res += ' Network throughput: {:.3f} bps\n'.format(self.throughput)
         res += ' Total TX energy consumption: {:.3f} Joule'.format(self.txEnergyConsumption)
-        with open ('energy-data.txt', 'a') as resFile:
-            resFile.write(str(self.txEnergyConsumption) + "\n")
-
         return res
 
     def __add__(self, other):
@@ -88,8 +85,10 @@ class Simulation:
             print(' {}'.format(event))
 
     def show_results(self):
+        with open ('energy-data.txt', 'a') as resFile:
+            resFile.write(str(self.simulationResult.txEnergyConsumption) + "\n")
         #print('Results:')
-        print('{}'.format(self.simulationResult))
+        #print('{}'.format(self.simulationResult))
 
     def show_inputs(self):
         print('Results:')

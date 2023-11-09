@@ -22,10 +22,12 @@ class Gateway:
 
 num_providers=5
 interaction_step=10
-total_steps = 300
+warmup_steps=100
+actual_steps=3000
+total_steps = warmup_steps + actual_steps
 loraVehiclePercentage= 0.5
 loraRange = 5000
-scenario = 0
+scenario = 1
 gatewayFile="gt.txt"
 nodesFile = "nodes.txt"
 energyResFile = "energy-data.txt"
@@ -85,10 +87,11 @@ def run():
 
     while step < total_steps:
         counter=0       #lora vehicles counter
+        detected_vehicles_counter =0
         transactionList = list() #list of tuples with the info about the transactions
-        if (step % interaction_step == 0 and step > 0):
+        if (step % interaction_step == 0 and step > warmup_steps):
             # write the positions of the vehicles/sensors in the nodes files, the file will be used by simlorasf
-            with open (nodesFile, 'a') as nf,  open ("lunes/step" + str(step) + ".txt", "w") as transactionsFile:
+            with open (nodesFile, 'a') as nf,  open ("lunes/step" + str(step - warmup_steps) + ".txt", "w") as transactionsFile:
                 for veh_id in traci.vehicle.getIDList():
                     if (traci.vehicle.getColor(veh_id) == (255, 255, 0, 255)):    #yellow, it's a new vehicle
                         if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and random.random() < loraVehiclePercentage): 
@@ -100,8 +103,9 @@ def run():
                         nf.write(str(traci.vehicle.getPosition(veh_id)).replace('(', '').replace(')', '') + ",  " + str(step) +"\n")
                         gateway_id = gateways_in_range(veh_id)
                         if (scenario == 1):
-                            neighs = traci.vehicle.getNeighbors(veh_id, 1) #TODO
-                            #print(neighs)
+                            neighbors = traci.vehicle.getNeighbors(veh_id, 0), traci.vehicle.getNeighbors(veh_id, 1), traci.vehicle.getNeighbors(veh_id, 2), traci.vehicle.getNeighbors(veh_id, 3)
+                            num_neighbors = len([t for t in neighbors if t])
+                            detected_vehicles_counter += num_neighbors
                         if (gateway_id >= 0):
                             provider = random.randint (0, num_providers -1)    #temporarily, the connection between data and provider is random
                             transactionList.append (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step) + "\n")
@@ -111,7 +115,9 @@ def run():
                     transactionsFile.write(elem)
 
         #execute lorasimsf
-        if (step % interaction_step == 0 and counter > 0 ):
+        if (step % interaction_step == 0 and step > warmup_steps and counter > 0 ):
+            if scenario == 1:
+                print ("Detected ", detected_vehicles_counter, " out of ", len (traci.vehicle.getIDList()), " vehicles")
             print (counter, " lora vehicles at ", step)
             os.system("python3 simlorasf/main.py -r 5000 -g " + str(len(gateways)) + " -n " + str(counter) + " -s SF_Lowest -d  20 -p 0.2 -z 60 -o 1 0")    
             with open (nodesFile, 'a') as f:            #after the file has been used by simlorasf to kwow the location of the sensors, then it is emptied
@@ -119,7 +125,7 @@ def run():
 
         conn1.simulationStep()
         step += 1
-        time.sleep(0.04)
+        time.sleep(0.01)
 
     traci.close()
     sys.stdout.flush()
