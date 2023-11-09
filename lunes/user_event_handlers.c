@@ -261,7 +261,6 @@ void execute_transaction(double ts, hash_node_t *src, hash_node_t *dest, unsigne
 
 	// Defining the message type
 	msg.type = 'T';
-
 	msg.timestamp = timestamp;
 	msg.ttl = ttl;
 	msg.transaction = tr;
@@ -289,7 +288,6 @@ void execute_confirmation(double ts, hash_node_t *src, hash_node_t *dest, unsign
 
 	// Defining the message type
 	msg.type = 'N';
-
 	msg.timestamp = timestamp;
 	msg.ttl = ttl;
 	msg.blockID = toConfirm;
@@ -429,8 +427,8 @@ void	user_notify_migration_event_handler () {
 
 /*****************************************************************************
 	NOTIFY EXTERNAL MIGRATION: SEs that are allocated in other LPs are going 
-	to be migrated, this LP is notified of this update but the user level 
-	usually does not care of it
+	to be migrated, this LP is notified of this update but the user level usually does not care of it
+
 */
 void	user_notify_ext_migration_event_handler () {
 
@@ -443,8 +441,7 @@ void	user_notify_ext_migration_event_handler () {
 
 	A new migration message for this LP has been received, the trasported SE has 
 	been created and inserted in the data structures. Now it is necessary to 
-	perform some user level tasks such as taking care of de-serializing the 
-	SE's local state
+	perform some user level tasks such as taking care of de-serializing the SE's local state
 */
 void	user_migration_event_handler (hash_node_t *node, int id, Msg *msg) {
 
@@ -464,7 +461,7 @@ void	user_control_handler () {
 	// Only if in the aggregation phase is finished &&
 	// if it is possible to send messages up to the last simulated timestep then the statistics will be
 	// affected by some messages that have been sent but with no time to be received
-	if ( ( simclock >= (float) EXECUTION_STEP) && ( simclock <  ( env_end_clock - 9 ) ) ) {
+	if ( ( simclock >= (float) EXECUTION_STEP) && ( simclock <  ( env_end_clock - 3 ) ) ) {
 		// For each local SE
 	   	for ( h = 0; h < stable->size; h++ ) {
 			for ( node = stable->bucket[h]; node; node = node->next) {	
@@ -492,6 +489,10 @@ void	user_control_handler () {
 				createLinks(node);
 			}
 		}
+	}
+
+	if (simclock == (float) env_end_clock -5){
+		lunes_print_stats();
 	}
 }
 
@@ -616,7 +617,6 @@ void	user_bootstrap_handler () {
 	#ifdef TRACE_DISSEMINATION
 	char buffer[1024];
 
-
 	// Preparing the simulation trace file
 	sprintf (buffer, "%sSIM_TRACE_%03d.log", "", LPID);
 
@@ -639,11 +639,8 @@ void	user_shutdown_handler () {
 	fp_print_messages_trace = fopen(buffer, "w");
 
 	//	statistics
-	//		total number of pings on the network
 	fprintf(fp_print_messages_trace, "M %010lu\n", get_total_sent_pings ());
-
 	fclose(fp_print_messages_trace);
-
 	fclose(fp_print_trace);
 	#endif
 }

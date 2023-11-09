@@ -45,6 +45,9 @@ class SimulationResult:
         res = ' PDR: {:.3f} %\n'.format(self.pdr)
         #res += ' Network throughput: {:.3f} bps\n'.format(self.throughput)
         res += ' Total TX energy consumption: {:.3f} Joule'.format(self.txEnergyConsumption)
+        with open ('energy-data.txt', 'a') as resFile:
+            resFile.write(str(self.txEnergyConsumption) + "\n")
+
         return res
 
     def __add__(self, other):

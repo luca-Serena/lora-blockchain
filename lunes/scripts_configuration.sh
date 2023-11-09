@@ -39,7 +39,7 @@ NOTRACE=1
 #
 #	Number of time-steps in each simulation run
 #	(after the building phase of the network is completed)
-export END_CLOCK=1000
+
 
 #########################################################
 # File names definition, used for statistics purposes

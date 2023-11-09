@@ -69,6 +69,9 @@ extern int              env_subs;						/* Number of subscriptions in the system 
 
 
 int **subs_map;
+int transactions_lost=0;
+int transactions_total=0;
+int transactions_validated=0;
 Transaction emptyTransaction = {.timestamp=0, .transactionID=0, .customer = -1, .sensor=-1, .gateway=-1};
 
 /**********************SUPPORT FUNCTIONS*****************************************/
@@ -161,9 +164,10 @@ int isThereBlockGivenHeight (hash_node_t* node, int heightRequired){
  		}
  	}
  	if (found == 0){
- 		printf("AT %d BUFFER FOR TRANSACTIONS IS FULL FOR NODE %d. TRY TO INCREASE IT. NOW IT IS %d\n", (int)simclock, node->data->key, TRANSACTION_BUFFER_SIZE);
+ 		transactions_lost++;
+ 		/*printf("AT %d BUFFER FOR TRANSACTIONS IS FULL FOR NODE %d. TRY TO INCREASE IT. NOW IT IS %d\n", (int)simclock, node->data->key, TRANSACTION_BUFFER_SIZE);
  		fflush(stdout);
-		exit(-1);
+		exit(-1);*/
  	}
 }
 
@@ -337,6 +341,7 @@ void generate_transaction (hash_node_t *node, int sensor, int gw, int ts, int pr
 			cache_element c = {.id = t.transactionID, .timestamp = (int)simclock};
 			add_into_cache(node, c);
 			add_transaction(node, t);
+			transactions_total++;
 			lunes_send_transaction_to_neighbors (node, t);
 		}
 	}
@@ -375,6 +380,12 @@ void read_transactions(hash_node_t *node){
     }
 }
 
+
+
+void lunes_print_stats(){
+	printf ("Number of messages lost per node because the buffer for transactions is full: %d\n", transactions_lost/env_full_nodes);
+	printf ("Transaction validated: %d out of %d\n", transactions_validated, transactions_total);
+}
 
 /* ************************************************************************ */
 /* 	L U N E S     U S E R    L E V E L     H A N D L E R S		    */
@@ -426,6 +437,7 @@ void lunes_user_control_handler (hash_node_t *node) {
 			}
 		}
 		node->data->numBlocks++;
+		transactions_validated += counter;
 		add_block(node, b);
 		cache_element c = {.id = b.blockID, .timestamp = (int)simclock};
 		add_into_cache (node, c);

@@ -27,6 +27,7 @@ void    generate_subs ();
 
 // Support functions
 void 	lunes_load_entities_location ();
+void    lunes_print_stats();
 
 #endif /* __LUNES_H */
 

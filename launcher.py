@@ -22,11 +22,13 @@ class Gateway:
 
 num_providers=5
 interaction_step=10
-total_steps = 1000
+total_steps = 300
 loraVehiclePercentage= 0.5
 loraRange = 5000
+scenario = 0
 gatewayFile="gt.txt"
 nodesFile = "nodes.txt"
+energyResFile = "energy-data.txt"
 osmLocation = "locations/bologna-5000"
 gateways = list()
 
@@ -84,12 +86,11 @@ def run():
     while step < total_steps:
         counter=0       #lora vehicles counter
         transactionList = list() #list of tuples with the info about the transactions
-        if (step % interaction_step == 0):
+        if (step % interaction_step == 0 and step > 0):
             # write the positions of the vehicles/sensors in the nodes files, the file will be used by simlorasf
             with open (nodesFile, 'a') as nf,  open ("lunes/step" + str(step) + ".txt", "w") as transactionsFile:
                 for veh_id in traci.vehicle.getIDList():
                     if (traci.vehicle.getColor(veh_id) == (255, 255, 0, 255)):    #yellow, it's a new vehicle
-                        #print ("new vehicle ", traci.vehicle.getTypeID(veh_id),  "  ", step, "  ", traci.vehicle.getPosition(veh_id))
                         if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and random.random() < loraVehiclePercentage): 
                             traci.vehicle.setColor(veh_id, (255, 0, 0, 255))      #red, vehicle with Lora sensors
                         else:
@@ -98,14 +99,16 @@ def run():
                     if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and traci.vehicle.getColor(veh_id) == (255, 0, 0, 255)):
                         nf.write(str(traci.vehicle.getPosition(veh_id)).replace('(', '').replace(')', '') + ",  " + str(step) +"\n")
                         gateway_id = gateways_in_range(veh_id)
+                        if (scenario == 1):
+                            neighs = traci.vehicle.getNeighbors(veh_id, 1) #TODO
+                            #print(neighs)
                         if (gateway_id >= 0):
                             provider = random.randint (0, num_providers -1)    #temporarily, the connection between data and provider is random
                             transactionList.append (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step) + "\n")
-                            #file.write (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step) + "\n")
                         counter+=1
 
                 for elem in transactionList:
-                    transactionsFile.write (elem)
+                    transactionsFile.write(elem)
 
         #execute lorasimsf
         if (step % interaction_step == 0 and counter > 0 ):
@@ -116,7 +119,7 @@ def run():
 
         conn1.simulationStep()
         step += 1
-        time.sleep(0.1)
+        time.sleep(0.04)
 
     traci.close()
     sys.stdout.flush()
@@ -135,6 +138,9 @@ if __name__ == "__main__":
             except OSError as e:
                 print(f"Error when deleting file {file_path}: {e}")
 
+    if os.path.exists (energyResFile):
+        os.remove(energyResFile)
+
     #initialize lunes
     os.chdir ("lunes")
     os.system ("./run &")
@@ -148,5 +154,4 @@ if __name__ == "__main__":
 
     # traci starts sumo as a subprocess and then this script connects and runs
     traci.start([sumoBinary, "-c", osmLocation + "/osm.sumocfg", "--tripinfo-output", osmLocation + "/tripinfo.xml"], label = "sim1")
-    #traci.start([sumoBinary, "-c", "osm.sumocfg", "--tripinfo-output", "tripinfo.xml"], label = "sim1")
     run()

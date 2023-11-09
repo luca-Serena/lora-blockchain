@@ -22,6 +22,7 @@
 # Including some default configuration parameters
 #
 source scripts_configuration.sh
+export END_CLOCK=300
 export MIGRATION=0
 export MFACTOR=0
 export LOAD=0
