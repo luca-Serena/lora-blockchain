@@ -56,10 +56,7 @@ extern int				NLP; 							/* Number of Logical Processes */
 extern unsigned int		env_cache_size;					/* Cache size of each node */
 extern float			env_end_clock;					/* End clock (simulated time) */
 extern int 		  		env_block_frequency;  			/* A block is produced on average every env_block_frequency steps */
-extern unsigned short	env_dissemination_mode;			/* Dissemination mode */
-extern float 			env_broadcast_prob_threshold;	/* Dissemination: conditional broadcast, probability threshold */
 extern unsigned int		env_cache_size;					/* Cache size of each node */
-extern float			env_fixed_prob_threshold;		/* Dissemination: fixed probability, probability threshold */
 extern int 		 		env_gateway_nodes;				/* Owners of gateways in the environment */
 extern int 		 		env_sensor_nodes;				/* Owners of sensors in the environment */
 extern int 				env_full_nodes;					/* Number of full nodes in the system*/
@@ -72,6 +69,7 @@ int **subs_map;
 int transactions_lost=0;
 int transactions_total=0;
 int transactions_validated=0;
+int nextValidator=-1;
 Transaction emptyTransaction = {.timestamp=0, .transactionID=0, .customer = -1, .sensor=-1, .gateway=-1};
 
 /**********************SUPPORT FUNCTIONS*****************************************/
@@ -105,10 +103,11 @@ int isBlockProducer (hash_node_t* node){
 			posCounter += otherNode->data->coins;
 		}
 	}
+	int pseudorandom_for_pos = (int)simclock * 342 % stakeCounter;     //to decide which node validates the block
 	if (stakeCounter == 0 && ((int) simclock / env_block_frequency) % env_full_nodes == node->data->key){
 		return 1;
-	} else if (stakeCounter > 0 && (int)simclock % stakeCounter >= posCounter && (int)simclock % stakeCounter < posCounter + node->data->coins){
-		//printf ("chosen node: %d, with %d out of %d", node->data->key, node->data->coins, stakeCounter); //DEBUG
+	} else if (stakeCounter > 0 && pseudorandom_for_pos >= posCounter && pseudorandom_for_pos < posCounter + node->data->coins){
+		//printf ("__Chosen node__at %d__%d_____%d-%d-%d = %d____\n", (int)simclock, node->data->key, posCounter, posCounter + node->data->coins, stakeCounter, pseudorandom_for_pos); //DEBUG
 		return 1;
 	} else {
 	    return 0;
@@ -337,7 +336,8 @@ void generate_transaction (hash_node_t *node, int sensor, int gw, int ts, int pr
 	}
 	for (int i=0; i < env_subs; i++){
 		if (subs_map [i][1] == sensor){  // a transaction for each couple of data-subscriber
-			Transaction t = {.timestamp = ts, .gateway = gw, .sensor = sensor, .customer = subs_map[i][0], .transactionID =  RND_Interval (S, 0, 1000000000000)};
+			int sensor_provider =  sensor % env_full_nodes;      // temporary strategy
+			Transaction t = {.timestamp = ts, .gateway = gw, .sensor = sensor, .customer = subs_map[i][0], .transactionID =  RND_Interval (S, 0, 1000000000000), .provider=sensor_provider};
 			cache_element c = {.id = t.transactionID, .timestamp = (int)simclock};
 			add_into_cache(node, c);
 			add_transaction(node, t);
@@ -351,9 +351,10 @@ void generate_transaction (hash_node_t *node, int sensor, int gw, int ts, int pr
 // read the flow of data from the temporary file
 void read_transactions(hash_node_t *node){
 	char line[256];
-	char transactionsFileName [15];
-	snprintf(transactionsFileName, sizeof(transactionsFileName), "%s%d%s", "step", (int)(simclock), ".txt");
-	FILE *fp = fopen (transactionsFileName, "r");
+	char transmissionsFileName [17] = "transmissions.txt";
+	char flagFile [15];
+	snprintf(flagFile, sizeof(flagFile), "%s%d%s", "step", (int)(simclock), ".txt");
+	FILE *fp = fopen (transmissionsFileName, "r");
 	if (fp != NULL){
      	while (fgets(line, sizeof(line), fp) != NULL) {     // Initialize variables to store the three fields
 	    	char field1[64], field2[64], field3[64], field4[64]; 
@@ -373,9 +374,9 @@ void read_transactions(hash_node_t *node){
 	    }
 	    fclose(fp);
 
-	    if (remove(transactionsFileName) != 0) {
-	        perror("Error deleting the file");
-	        exit(-1);
+	    if (remove(flagFile) != 0) {
+	        fprintf(stderr, "Error deleting the file %s\n", flagFile);
+	        //exit(-1);
 	    }  
     }
 }
@@ -413,7 +414,14 @@ void lunes_initialize_agents (hash_node_t *node) {
 
 void lunes_user_control_handler (hash_node_t *node) {
 
-	if (node->data->type == 'P' && (int)simclock % env_block_frequency == 2 && isBlockProducer(node)) {
+	//read transactions and decide who is the next validator. Decision of next validator performed here to avoid conflicts with PoS
+	if (node->data->type == 'P' && (int)simclock % env_block_frequency == 0 && isBlockProducer(node)){
+		read_transactions(node);
+		nextValidator = node->data->key;
+	}
+
+	//produce the block if the node is the validator
+	if (node->data->key == nextValidator && (int)simclock % env_block_frequency == 5) {
 		int newHeight=0, prevBlockID = -1;
 		if (node->data->numBlocks > 0){
 			prevBlockID = node->data->blocks[node->data->numBlocks - 1].blockID;
@@ -422,12 +430,14 @@ void lunes_user_control_handler (hash_node_t *node) {
 		int counter=0;
 		Block b = {.blockID=RND_Interval (S, 0, 1000000000000), .timestamp = (int)simclock, .blockMaker = node->data->key,
 					.previousBlockID = prevBlockID, .height = newHeight, .confirmations = 1};
+
 		for (int i =0; i< TRANSACTION_BUFFER_SIZE; i++){
 			if (node->data->transactions[i].transactionID > 0){
 				b.transactions[counter] = node->data->transactions[i];
 				hash_lookup(table, b.transactions[counter].gateway)->data->coins++;   //reward the gateway
 				hash_lookup(table, b.transactions[counter].sensor)->data->coins++;    //reward the sensor
-				hash_lookup(table, b.transactions[counter].provider)->data->coins++;  //reward the provider
+				hash_lookup(table, b.transactions[counter].provider)->data->coins++;    //reward the sensor
+				//printf ("rewarding %d and %d at %d\n", b.transactions[counter].sensor, b.transactions[counter].gateway, (int)simclock);  //DEBUG
 				counter++;
 				node->data->transactions[i] = emptyTransaction;
 				if (counter == MAX_TRANSACTIONS_IN_BLOCKS){
@@ -443,10 +453,6 @@ void lunes_user_control_handler (hash_node_t *node) {
 		add_into_cache (node, c);
 		lunes_send_block_to_neighbors (node, b);
 		print_block(&b);
-	}
-
-	if (node->data->type == 'P' && (int)simclock % env_block_frequency == 0 && ((int)simclock % env_full_nodes == node->data->key)){
-		read_transactions(node);
 	}
 }
 

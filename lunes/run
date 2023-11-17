@@ -26,16 +26,12 @@ export END_CLOCK=300
 export MIGRATION=0
 export MFACTOR=0
 export LOAD=0
-export DISSEMINATION=0
-export BROADCAST_PROB_THRESHOLD=100
-export FIXED_PROB_THRESHOLD=100
 export SENSOR_NODES=20
 export FULL_NODES=10
 export GATEWAYS=5
 export CLIENTS=12
 export BLOCK_FREQUENCY=10
 export SUBS=22
-export TOTAL_NODES=$((SENSOR_NODES + FULL_NODES + GATEWAYS + CLIENTS))
 
 #
 #---------------------------------------------------------------------------------#
@@ -51,13 +47,18 @@ while [[ $# -gt 0 ]]; do
   key="$1"
 
   case $key in
-  -e | --error)
-    ERROR_RATE="$2"
+  -p | --providers)
+    FULL_NODES="$2"
     shift # past argument
     shift # past value
     ;;
-  -d | --down)
-    DATA_CENTERS_DOWN="$2"
+  -g | --gateways)
+    GATEWAYS="$2"
+    shift # past argument
+    shift # past value
+    ;;
+  -s | --steps)
+    END_CLOCK="$2"
     shift # past argument
     shift # past value
     ;;
@@ -67,6 +68,8 @@ while [[ $# -gt 0 ]]; do
     ;;
   esac
 done
+
+export TOTAL_NODES=$((SENSOR_NODES + FULL_NODES + GATEWAYS + CLIENTS))
 
 #---------------------------------------------------------------------------------#
 date

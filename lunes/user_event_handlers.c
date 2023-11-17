@@ -58,11 +58,7 @@ extern unsigned int		env_migration;					/* Migration state */
 extern float			env_migration_factor;			/* Migration factor */
 extern unsigned int		env_load;						/* Load balancing */
 extern float			env_end_clock;					/* End clock (simulated time) */
-extern unsigned short	env_max_ttl;					/* TTL of new messages */
-extern unsigned short	env_dissemination_mode;			/* Dissemination mode */
-extern float 			env_broadcast_prob_threshold;	/* Dissemination: conditional broadcast, probability threshold */
 extern unsigned int		env_cache_size;					/* Cache size of each node */
-extern float			env_fixed_prob_threshold;		/* Dissemination: fixed probability, probability threshold */
 extern int 		 		env_gateway_nodes;				/* Owners of gateways in the environment */
 extern int 		 		env_sensor_nodes;				/* Owners of sensors in the environment */
 extern int 				env_full_nodes;					/* Number of full nodes in the system*/
@@ -568,34 +564,6 @@ void	user_environment_handler () {
 	if (env_end_clock == 0) {
 
 		fprintf(stdout, "LUNES____[%10d]:  END_CLOCK is 0, no timesteps are defined for this run!!!\n", local_pid);
-	}
-		//	Runtime configuration:	dissemination mode (gossip protocol)
-	env_dissemination_mode = atoi(check_and_getenv("DISSEMINATION"));
-	fprintf(stdout,"LUNES____[%10d]: DISSEMINATION, dissemination mode -> %d\n", local_pid, env_dissemination_mode);
-	//
-	switch ( env_dissemination_mode ) {
-
-		case BROADCAST:			//	probabilistic broadcast dissemination
-
-			//	Runtime configuration:	probability threshold of the broadcast dissemination
-			env_broadcast_prob_threshold = atof(check_and_getenv("BROADCAST_PROB_THRESHOLD"));
-			fprintf(stdout, "LUNES____[%10d]: BROADCAST_PROB_THRESHOLD, probability of the broadcast dissemination -> %f\n", local_pid, env_broadcast_prob_threshold);
-			if ( ( env_broadcast_prob_threshold < 0 ) || ( env_broadcast_prob_threshold > 100 ) ) {
-
-				fprintf(stdout, "LUNES____[%10d]: BROADCAST_PROB_THRESHOLD is out of the boundaries!!!\n", local_pid);
-			}		
-		break;
-	
-		case GOSSIP_FIXED_PROB:		//	gossip with fixed probability
-
-			//	Runtime configuration:	probability threshold of the fixed probability dissemination
-			env_fixed_prob_threshold = atof(check_and_getenv("FIXED_PROB_THRESHOLD"));
-			fprintf(stdout, "LUNES____[%10d]: FIXED_PROB_THRESHOLD, probability of the fixed probability dissemination -> %f\n", local_pid, env_fixed_prob_threshold);
-			if ( ( env_fixed_prob_threshold < 0 ) || ( env_fixed_prob_threshold > 100 ) ) {
-
-				fprintf(stdout, "LUNES____[%10d]:  FIXED_PROB_THRESHOLD is out of the boundaries!!!\n", local_pid);
-			}		
-		break;
 	}
 	env_clients = atoi(check_and_getenv("CLIENTS"));
 	env_gateway_nodes = atoi(check_and_getenv("GATEWAYS"));

@@ -22,13 +22,14 @@ class Gateway:
 
 num_providers=5
 interaction_step=10
-warmup_steps=100
+warmup_steps=30
 actual_steps=3000
 total_steps = warmup_steps + actual_steps
 loraVehiclePercentage= 0.5
 loraRange = 5000
 scenario = 1
 gatewayFile="gt.txt"
+transmissionsFile="lunes/transmissions.txt"
 nodesFile = "nodes.txt"
 energyResFile = "energy-data.txt"
 osmLocation = "locations/bologna-5000"
@@ -71,17 +72,10 @@ def gateways_in_range (veh_id):
     return res
             
 
+ #open ("lunes/step" + str(step - warmup_steps) + ".txt", "w") as flagFile:
 
 # contains TraCI control loop
 def run():
-
-    gateway_counter=0
-    with open (gatewayFile, "r") as gfile:
-        for line in gfile:          # read gateway positions and fill up the list of gateways
-            x, y = map(int, line.strip().split(',')) 
-            gateways.append(Gateway(x, y, gateway_counter))
-            gateway_counter +=1
-
     step = 0
     conn1 = traci.getConnection("sim1")
 
@@ -91,7 +85,7 @@ def run():
         transactionList = list() #list of tuples with the info about the transactions
         if (step % interaction_step == 0 and step > warmup_steps):
             # write the positions of the vehicles/sensors in the nodes files, the file will be used by simlorasf
-            with open (nodesFile, 'a') as nf,  open ("lunes/step" + str(step - warmup_steps) + ".txt", "w") as transactionsFile:
+            with open (nodesFile, 'a') as nf,  open (transmissionsFile, "w") as tf:
                 for veh_id in traci.vehicle.getIDList():
                     if (traci.vehicle.getColor(veh_id) == (255, 255, 0, 255)):    #yellow, it's a new vehicle
                         if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and random.random() < loraVehiclePercentage): 
@@ -111,13 +105,16 @@ def run():
                             transactionList.append (str(veh_id) + " " + str(gateway_id) + " " + str(provider) + " " + str(step) + "\n")
                         counter+=1
 
-                for elem in transactionList:
-                    transactionsFile.write(elem)
+                for elem in transactionList:            #write the trasnmitted data in the transmission file
+                    tf.write(elem)
+
+            with open ("lunes/step" + str(step - warmup_steps) + ".txt", "w") as flagFile:             #data ready to be read
+                flagFile.write ("OK")
 
         #execute lorasimsf
         if (step % interaction_step == 0 and step > warmup_steps and counter > 0 ):
             if scenario == 1:
-                print ("Detected ", detected_vehicles_counter, " out of ", len (traci.vehicle.getIDList()), " vehicles")
+                print ("\nDetected ", detected_vehicles_counter, " out of ", len (traci.vehicle.getIDList()), " vehicles at ", (step - warmup_steps))
             print (counter, " lora vehicles at ", step)
             os.system("python3 simlorasf/main.py -r 5000 -g " + str(len(gateways)) + " -n " + str(counter) + " -s SF_Lowest -d  20 -p 0.2 -z 60 -o 1 0")    
             with open (nodesFile, 'a') as f:            #after the file has been used by simlorasf to kwow the location of the sensors, then it is emptied
@@ -129,6 +126,8 @@ def run():
 
     traci.close()
     sys.stdout.flush()
+
+
 
 
 # main entry point
@@ -147,9 +146,20 @@ if __name__ == "__main__":
     if os.path.exists (energyResFile):
         os.remove(energyResFile)
 
+    if os.path.exists (transmissionsFile):
+        os.remove(transmissionsFile)
+
+    #load and count the gateways
+    gateway_counter=0
+    with open (gatewayFile, "r") as gfile:
+        for line in gfile:          # read gateway positions and fill up the list of gateways
+            x, y = map(int, line.strip().split(',')) 
+            gateways.append(Gateway(x, y, gateway_counter))
+            gateway_counter +=1
+
     #initialize lunes
     os.chdir ("lunes")
-    os.system ("./run &")
+    os.system ("./run -p " + str(num_providers) + " -g " + str(gateway_counter) + " -s " + str(actual_steps) + " &")
     os.chdir ("..")
 
     # check binary

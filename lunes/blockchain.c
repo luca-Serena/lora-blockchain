@@ -62,10 +62,7 @@ float		env_migration_factor;			// Migration factor
 unsigned int	env_load;						// Load balancing
 float		env_end_clock = END_CLOCK;		// End clock (simulated time)
 unsigned int	env_migration;				// Migration state
-unsigned short	env_dissemination_mode;			// Dissemination mode
-float		env_broadcast_prob_threshold;		// Dissemination: conditional broadcast, probability threshold
 unsigned int	env_cache_size;				// Cache size of each node
-float		env_fixed_prob_threshold;		// Dissemination: fixed probability, probability threshold
 int 		env_gateway_nodes;			/* Owners of gateways in the environment */
 int 		env_sensor_nodes;			/* Owners of sensors in the environment */
 int 		env_full_nodes;				/* Number of full nodes in the system*/
