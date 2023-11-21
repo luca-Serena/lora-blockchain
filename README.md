@@ -19,9 +19,13 @@ To execute the software, tun the following command
 There are many parameters of the system that can be set.
 
 Some are contained in launcher.py, such as:
-- loraVehiclePercentage, that must be between 0 and 1, it sets the percentage of vehicles carrying LoRa sensors
-- loraRange, communication range (in meters) of LoRa physical medium
-- interaction_step, which is the number of steps after which Lora sensors send data. One step in SUMO is one second
+- *loraVehiclePercentage*, which must be between 0 and 1, it sets the percentage of vehicles carrying LoRa sensors
+- *warmup_steps*, which are the steps necessary for the vehicles to fill the map, nothing else other than standard sumo execution happens
+- *actual_steps*, which are the full steps of the simulation. The total SUMO timesteps are given by warmup_steps + actual_steps
+- *loraRange*, which is communication range (in meters) of LoRa physical medium
+- *interaction_step*, which represent the number of steps at which LUNES and simorasf are called. We also assume that one packet is sent by every node in this gap . One step in SUMO is one second
+- *num_providers*, which is the number of LoRaWAN providers
+
 
 Other parameters are containes in lunes/run, such as:
 - FULL_NODES, which is the number of full nodes of the permissioned blockchain
