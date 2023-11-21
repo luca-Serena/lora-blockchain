@@ -3,20 +3,6 @@
 #	Large Unstructured NEtwork Simulator (LUNES)
 ################################################################################################
 
-#########################################################
-#	CONFIGURATION FILES USED BY SCRIPTS
-#########################################################
-#
-#	Common prefix for the output directories
-PREFIX_DIRECTORY=/home/SenecaUrla/Downloads/ARTIS-2.1.2-x86_64/MODELS/LUNES-lora-blockchain
-#
-RESULTS_DIRECTORY=$PREFIX_DIRECTORY/results
-#
-mkdir -p  $RESULTS_DIRECTORY
-#
-#########################################################
-#	EXECUTION VALUES
-#########################################################
 #
 #	Number of working threads to be run for log processing
 SOCKETS=`lscpu | grep "Socket(s)" | cut -d":" -f2 | cut -f14 -d" "`
