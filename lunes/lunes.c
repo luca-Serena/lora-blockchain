@@ -357,28 +357,27 @@ void read_transactions(hash_node_t *node){
 	FILE *fp = fopen (transmissionsFileName, "r");
 	if (fp != NULL){
      	while (fgets(line, sizeof(line), fp) != NULL) {     // Initialize variables to store the three fields
-	    	char field1[64], field2[64], field3[64], field4[64]; 
+	    	char field1[64], field2[64], field3[64]; 
 		    // Use sscanf to read the fields
-		    if (sscanf(line, "%s %s %s %s", field1, field2, field3, field4) == 4) {
+		    if (sscanf(line, "%s %s %s", field1, field2, field3) == 3) {
 		    	memmove(field1, field1 + 3, strlen(field1) - 2);
 				int sensor = atoi(field1) % env_sensor_nodes + env_full_nodes + env_gateway_nodes;
 				int gateway = atoi (field2) + env_full_nodes;
 				int provider = atoi (field3);
-				int timestamp = atoi (field4);
 				//fprintf(stdout, "%d %d %d___\n", sensor, gateway, timestamp);
-				generate_transaction (node, sensor, gateway, timestamp, provider);
+				generate_transaction (node, sensor, gateway, (int)simclock, provider);
 		    } else { // Handle cases where a line does not have three fields
 		        printf("Invalid line: %s\n", line);
 		        exit (-1);
 		    }
 	    }
 	    fclose(fp);
-
-	    if (remove(flagFile) != 0) {
-	        fprintf(stderr, "Error deleting the file %s\n", flagFile);
-	        //exit(-1);
-	    }  
     }
+
+    if (remove(flagFile) != 0) {
+        fprintf(stderr, "Error deleting the file %s\n", flagFile);
+        //exit(-1);
+    }  
 }
 
 

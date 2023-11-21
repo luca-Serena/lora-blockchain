@@ -29,8 +29,11 @@ class TrafficType(enum.Enum):
 class Node:
     idCounter = 0
 
-    def __init__(self, location):
+    def __init__(self, location, name, id_closest_gateway, provider):
         self.location = location
+        self.name = name
+        self.gateway = id_closest_gateway
+        self.provider = provider
         Node.idCounter += 1
         self.id = Node.idCounter
         self.txList = []
@@ -45,6 +48,7 @@ class Node:
             return 'n {:>3} {} {:>2} {}'.format(self.id, self.location, self.lowestSf.name, self.trafficType.name)
 
     def schedule_tx(self, packet_rate, packet_size, simulation_duration, sf):
+        '''
         # Poisson interval
         if len(self.txList) == 0:
             # initial transmissions are poisson
@@ -58,8 +62,10 @@ class Node:
 
         if next_time > simulation_duration:
             return None
+        '''
+        next_time = random.random() * simulation_duration  #one single packet sent at a certain moment during the duration of the simulation
 
-        new_packet = Packet(time=next_time, sf=sf, source=self.id, size=packet_size)
+        new_packet = Packet(time=next_time, sf=sf, source=self.id, size=packet_size) 
         self.txList.append(new_packet)
 
         return new_packet
@@ -73,5 +79,5 @@ class Node:
 
 class Gateway(Node):
     def __init__(self, location):
-        Node.__init__(self, location)
+        Node.__init__(self, location, None, None, None)
         height = 15

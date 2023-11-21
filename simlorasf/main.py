@@ -65,7 +65,7 @@ if __name__ == "__main__":
     if args.seed:
         random.seed(args.seed)
 
-    topology = Topology.create_random_topology(number_of_nodes=args.node, radius=args.radius, number_of_gws=args.gateway, node_traffic_proportions=args.nodeTraffic)
+    topology = Topology.create_topology(number_of_nodes=args.node, radius=args.radius, number_of_gws=args.gateway, node_traffic_proportions=args.nodeTraffic)
 
     sfPredictor = None
     if PacketSf[args.sf] == PacketSf.SF_Smart:

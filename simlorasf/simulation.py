@@ -85,10 +85,10 @@ class Simulation:
             print(' {}'.format(event))
 
     def show_results(self):
-        with open ('energy-data.txt', 'a') as resFile:
-            resFile.write(str(self.simulationResult.txEnergyConsumption) + "\n")
-        #print('Results:')
-        #print('{}'.format(self.simulationResult))
+        with open ('LoRa-data.txt', 'a') as resFile:
+            resFile.write( "{:.8f}".format(self.simulationResult.txEnergyConsumption) +  "       " +  "{:.2f}".format(self.simulationResult.pdr)  
+            +  "        " +  str(self.simulationResult.successfulPacket)  +  "       " +  "{:.2f}".format(self.simulationResult.totalPacket) 
+            +  "         " +  "{:.2f}".format(self.simulationResult.throughput)  +"\n")
 
     def show_inputs(self):
         print('Results:')
@@ -163,6 +163,7 @@ class Simulation:
             sf = self.__get_sf(tx_node)
             self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize, simulation_duration=self.simulationDuration, sf=sf))
 
+        transmissionsList = list() #list of tuples with the info about the successful transmissions
         for event_index, event in enumerate(self.eventQueue):
             tx_node = self.topology.get_node(event.source)
 
@@ -185,6 +186,7 @@ class Simulation:
                 event.status = PacketStatus.under_sensitivity
             else:
                 # Check overlapping events
+                transmissionsList.append (tx_node.name + " " + tx_node.gateway + " " + tx_node.provider +"\n")
                 overlapping_events = []
                 for previous_event_index in range(event_index - 1, 0, -1):
                     previous_event = self.eventQueue[previous_event_index]
@@ -274,9 +276,15 @@ class Simulation:
 
             logging.info('Event simulated {}'.format(event))
 
-            # Schedule next event for this node
-            sf = self.__get_sf(tx_node)
-            self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize, simulation_duration=self.simulationDuration, sf=sf))
+            # Schedule next event for this node  
+            #sf = self.__get_sf(tx_node)   #just one transmission for the duration of the simulation in this scenario
+            #self.__add_to_event_queue(tx_node.schedule_tx(packet_rate=self.packetRate, packet_size=self.packetSize, simulation_duration=self.simulationDuration, sf=sf))
+        
+        #print successful transmissions        
+        with open ("lunes/transmissions.txt", 'w') as file:
+            for elem in transmissionsList:           #write the trasnmitted data in the transmission file
+                file.write(elem)
+        
 
         # Collect statistics
         cumulativeSuccessfulDataSize = 0
