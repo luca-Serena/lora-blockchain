@@ -20,10 +20,10 @@ class Gateway:
         return f"Gateway: (x={self.x}, y={self.y})"
 
 
-num_providers=5
+num_providers=5                             #number of LoRaWAN providers
 interaction_step=10                         #frequency at which LUNES and simlorasf are called
 warmup_steps=100                            #steps necessary for the vehicles to fill the map
-actual_steps=3000                           
+actual_steps=300                           
 total_steps = warmup_steps + actual_steps   #total number of SUMO time-steps
 loraVehiclePercentage= 0.2                  #percentage of vehicles in the map that are equipped with LoRa
 loraRange = 2100                            #Lora Range in meters. Consider https://www.researchgate.net/publication/338071047_An_Evaluation_of_LoRa_Communication_Range_in_Urban_and_Forest_Areas_A_Case_Study_in_Brazil_and_Portugal
@@ -31,6 +31,7 @@ scenario = 1                                # 0 = normal scenario. 1 = detecting
 pause_within_timesteps=0.0                  #pause between SUMO timestep in order to better visualize the movements of vehicles. It can set to 0 also
 gatewayFile="gt.txt"                        #file with the locations of the gateways
 transmissionsFile="lunes/transmissions.txt" #temporary file where successful transmission of LoRa packages are stored
+blockchainResFile="blockchain-status.txt"   #results from blockchain simulation
 nodesFile = "nodes.txt"                     #temporary file where temporary locations of the nodes are stored
 energyResFile = "LoRa-data.txt"             #file with LoRa results
 #osmLocation = "locations/bologna-dintorni-20k"
@@ -69,7 +70,9 @@ def closest_gateway(veh_id):
     for g in gateways:
         distance = cartesian_distance(int(x), int(y), g.x, g.y) 
         if (distance < min_distance):
+            min_distance = distance
             res = g.id
+
     return res
             
 
@@ -93,7 +96,7 @@ def run():
                             traci.vehicle.setColor(veh_id, (255, 0, 255, 255))    #purple, vehicle without Lora sensors
             
                     if (traci.vehicle.getTypeID(veh_id) == "veh_passenger" and traci.vehicle.getColor(veh_id) == (255, 0, 0, 255)):
-                        counter+=1
+                        counter+=1                                  #counter of lora vehicles at this step
                         gateway_id = closest_gateway(veh_id)
                         provider = random.randint (0, num_providers -1)    #temporarily, the connection between data and provider is random
                         nf.write(str(traci.vehicle.getPosition(veh_id)).replace('(', '').replace(')', '') + ", " + str(veh_id) +  ", " + str(gateway_id) + ", " + str(provider) + ", \n")
@@ -102,12 +105,11 @@ def run():
                             num_neighbors = len([t for t in neighbors if t])
                             detected_vehicles_counter += num_neighbors
 
-                #for elem in transactionList:            #write the trasnmitted data in the transmission file
-                #    tf.write(elem)
-
-            #execute lorasimsf
             if scenario == 1:
                 print ("\nDetected ", detected_vehicles_counter, " out of ", len (traci.vehicle.getIDList()), " vehicles at ", (step - warmup_steps))
+
+
+            #execute lorasimsf
             print (counter, " lora vehicles at ", step)
             os.system("python3 simlorasf/main.py -r " +  str(loraRange) + " -g " + str(len(gateways)) + " -n " + str(counter) + " -s SF_Lowest -d  20 -p 0.2 -z 60 -o 1 0")    
             with open (nodesFile, 'a') as f:            #after the file has been used by simlorasf to kwow the location of the sensors, then it is emptied
@@ -145,6 +147,9 @@ if __name__ == "__main__":
 
     if os.path.exists (transmissionsFile):
         os.remove(transmissionsFile)
+
+    if os.path.exists (blockchainResFile):
+        os.remove(blockchainResFile)
 
     #load and count the gateways
     gateway_counter=0

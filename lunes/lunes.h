@@ -24,6 +24,7 @@ void 	lunes_initialize_agents ( hash_node_t * );
 void	lunes_user_control_handler ( hash_node_t * );
 void	createLinks ( hash_node_t * );
 void    generate_subs ();
+void    lunes_print_blockchain (hash_node_t *);
 
 // Support functions
 void 	lunes_load_entities_location ();

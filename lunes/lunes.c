@@ -186,25 +186,6 @@ void print_block(Block *b){
 }
 
 
-
-/*
-
-void print_blockchain (hash_node_t* node){
-	int last_index = lastBlock(node);
-	if (last_index < 0) {
-		return;
-	}
-	Block last = node->data->blocks[last_index];
-	fprintf(stdout, "*****Subnet %d *******\n", node->data->subnetID);
-	print_block(&last);
-	while (last.previousBlockID > 0 ){
-		last_index = findBlock (node, last.previousBlockID);
-		last = node->data->blocks[last_index];
-		print_block(&last);
-	}
-	fprintf(stdout, " **\n");
-}
-*/
 //*************************************FUNCTIONS TO MANAGE THE CACHE*****************************************************
 
 //Chose the oldest element in the cache (the oldest is probably the least useful)
@@ -364,7 +345,7 @@ void read_transactions(hash_node_t *node){
 				int sensor = atoi(field1) % env_sensor_nodes + env_full_nodes + env_gateway_nodes;
 				int gateway = atoi (field2) + env_full_nodes;
 				int provider = atoi (field3);
-				//fprintf(stdout, "%d %d %d___\n", sensor, gateway, timestamp);
+				//printf( "%s %s %s %d___\n", field1, field2, field3, (int)simclock);
 				generate_transaction (node, sensor, gateway, (int)simclock, provider);
 		    } else { // Handle cases where a line does not have three fields
 		        printf("Invalid line: %s\n", line);
@@ -436,6 +417,7 @@ void lunes_user_control_handler (hash_node_t *node) {
 				hash_lookup(table, b.transactions[counter].gateway)->data->coins++;   //reward the gateway
 				hash_lookup(table, b.transactions[counter].sensor)->data->coins++;    //reward the sensor
 				hash_lookup(table, b.transactions[counter].provider)->data->coins++;    //reward the sensor
+				hash_lookup(table, b.transactions[counter].customer)->data->coins-= 3;  //coins deducted by the customer
 				//printf ("rewarding %d and %d at %d\n", b.transactions[counter].sensor, b.transactions[counter].gateway, (int)simclock);  //DEBUG
 				counter++;
 				node->data->transactions[i] = emptyTransaction;
@@ -455,6 +437,12 @@ void lunes_user_control_handler (hash_node_t *node) {
 	}
 }
 
+
+void lunes_print_blockchain (hash_node_t* node){
+	FILE *filePointer = fopen("../blockchain-status.txt", "a");
+    fprintf(filePointer, "node %d of type %c owning %d coins \n", node->data->key, node->data->type, node->data->coins);
+    fclose(filePointer);
+}
 
 
 /****************************************************************************

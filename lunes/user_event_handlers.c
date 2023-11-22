@@ -472,7 +472,6 @@ void	user_control_handler () {
 		generate_subs ();
 	   	for ( h = 0; h < stable->size; h++ ) {
 			for ( node = stable->bucket[h]; node; node = node->next) {
-				// Loading the graph topology that was previously generated
 				lunes_initialize_agents(node);
 			}
 		}
@@ -481,13 +480,17 @@ void	user_control_handler () {
 	if ( simclock ==(float) BUILDING_STEP +1) {
 	   	for ( h = 0; h < stable->size; h++ ) {
 			for ( node = stable->bucket[h]; node; node = node->next) {
-				// Loading the graph topology that was previously generated
 				createLinks(node);
 			}
 		}
 	}
 
-	if (simclock == (float) env_end_clock -5){
+	if (simclock == (float) env_end_clock -5 ){
+		for ( h = 0; h < stable->size; h++ ) {
+			for ( node = stable->bucket[h]; node; node = node->next) {
+				lunes_print_blockchain(node);
+			}
+		}
 		lunes_print_stats();
 	}
 }
